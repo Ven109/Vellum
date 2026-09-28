@@ -77,6 +77,8 @@ function TitleField({ live, docId }: { live: LiveDoc; docId: string }) {
       void updateDocument(docId, { title: next, updatedAt: new Date().toISOString() });
     };
     ytitle.observe(observer);
+    // Catch up with anything that arrived (local load or server sync) between render and subscribe.
+    setValue(ytitle.toString() || meta?.title || "");
     return () => ytitle.unobserve(observer);
     // Seed only once per open document.
   }, [ytitle, docId]); // eslint-disable-line react-hooks/exhaustive-deps
