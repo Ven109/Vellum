@@ -1,0 +1,31 @@
+{
+  "name": "vellum",
+  "private": true,
+  "description": "Vellum — an open-source writing app. Web + desktop, bring your own AI key.",
+  "license": "AGPL-3.0-or-later",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "pnpm -r --if-present run build",
+    "dev": "pnpm --filter @vellum/web dev",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "pnpm -r --if-present run typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.0",
+    "@types/node": "^22.15.0",
+    "eslint": "^10.11.0",
+    "globals": "^16.0.0",
+    "prettier": "^3.9.9",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.71.0",
+    "vitest": "^5.0.2"
+  }
+}
