@@ -18,7 +18,7 @@ describe("editor screen", () => {
     await waitFor(() =>
       expect(Number(screen.getByTestId("word-count").textContent?.split(" ")[0])).toBeGreaterThan(20),
     );
-    expect(screen.getByRole("status").textContent).toContain("Saved");
+    await waitFor(() => expect(screen.getByRole("status").textContent).toContain("Saved"));
     expect(await screen.findByText("A few things to try", { selector: "button" })).toBeTruthy();
   });
 

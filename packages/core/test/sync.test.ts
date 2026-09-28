@@ -90,3 +90,72 @@ describe("CRDT sync prototype", () => {
     expect(aw2.getStates().get(a.clientID)).toMatchObject({ cursor: 7 });
   });
 });
+
+describe("acknowledgements", () => {
+  it("server acks after persisting, client knows its edits are covered", async () => {
+    const server = new Y.Doc();
+    const client = new Y.Doc();
+    const persisted: number[] = [];
+    let lastAck: Uint8Array | null = null;
+    // eslint-disable-next-line prefer-const
+    let serverSession: sync.SyncSession;
+    const clientSession = new sync.SyncSession(
+      client,
+      { send: (m) => void serverSession.receive(m) },
+      {
+        onAck: (sv) => (lastAck = sv),
+      },
+    );
+    serverSession = new sync.SyncSession(
+      server,
+      { send: (m) => void clientSession.receive(m) },
+      {
+        sendAcks: true,
+        beforeAck: async () => {
+          persisted.push(Y.encodeStateAsUpdate(server).length);
+        },
+      },
+    );
+    clientSession.start();
+    serverSession.start();
+    client.getText("body").insert(0, "hello");
+    await new Promise((r) => setTimeout(r, 0));
+    expect(persisted.length).toBeGreaterThan(0);
+    expect(lastAck).not.toBeNull();
+    expect(sync.stateVectorCovers(lastAck!, Y.encodeStateVector(client))).toBe(true);
+    client.getText("body").insert(5, " world");
+    expect(sync.stateVectorCovers(lastAck!, Y.encodeStateVector(client))).toBe(false);
+  });
+
+  it("batches local updates and reports remote changes", async () => {
+    const a = new Y.Doc();
+    const b = new Y.Doc();
+    const sent: Uint8Array[] = [];
+    const remote: Uint8Array[] = [];
+    // eslint-disable-next-line prefer-const
+    let sb: sync.SyncSession;
+    const sa = new sync.SyncSession(
+      a,
+      {
+        send: (m) => {
+          sent.push(m);
+          void sb.receive(m);
+        },
+      },
+      { batchMs: 10 },
+    );
+    sb = new sync.SyncSession(
+      b,
+      { send: (m) => void sa.receive(m) },
+      { onRemoteUpdate: (u) => remote.push(u) },
+    );
+    a.getText("t").insert(0, "a");
+    a.getText("t").insert(1, "b");
+    a.getText("t").insert(2, "c");
+    expect(sent.length).toBe(0);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(sent.length).toBe(1);
+    expect(b.getText("t").toString()).toBe("abc");
+    expect(remote.length).toBe(1);
+  });
+});

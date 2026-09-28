@@ -6,10 +6,22 @@ import { useDocSession } from "../state/session.js";
 import { displayTitle } from "./Sidebar.js";
 
 const SAVE_LABEL = {
-  saved: { text: "Saved", icon: <Check size={14} /> },
-  saving: { text: "Saving…", icon: <Loader2 size={14} className="vl-spin" /> },
-  offline: { text: "Offline", icon: <CloudOff size={14} /> },
-  error: { text: "Not saved", icon: <TriangleAlert size={14} /> },
+  saved: { text: "Saved", icon: <Check size={14} />, hint: "All changes saved." },
+  saving: {
+    text: "Saving…",
+    icon: <Loader2 size={14} className="vl-spin" />,
+    hint: "Saving your latest changes.",
+  },
+  offline: {
+    text: "Offline",
+    icon: <CloudOff size={14} />,
+    hint: "Saved on this device. Changes will sync when the connection is back.",
+  },
+  error: {
+    text: "Not saved",
+    icon: <TriangleAlert size={14} />,
+    hint: "Changes could not be written to this device's storage. Copy your work somewhere safe.",
+  },
 } as const;
 
 export function TopBar({ doc }: { doc: DocumentMeta }) {
@@ -36,7 +48,7 @@ export function TopBar({ doc }: { doc: DocumentMeta }) {
         </span>
       </nav>
       <div className="vl-topbar-right">
-        <span className={`vl-save vl-save-${saveState}`} role="status" aria-live="polite">
+        <span className={`vl-save vl-save-${saveState}`} role="status" aria-live="polite" title={save.hint}>
           {save.icon}
           {save.text}
         </span>
