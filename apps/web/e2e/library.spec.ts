@@ -4,7 +4,7 @@ test("library lists documents by status and opens them from the keyboard", async
   await page.goto("/library");
   const sidebar = page.getByRole("navigation", { name: "Workspace" });
   await sidebar.getByRole("button", { name: "New draft" }).click();
-  await page.getByLabel("Title").fill("Keyboard pick");
+  await page.getByRole("textbox", { name: "Title" }).fill("Keyboard pick");
   await sidebar.getByRole("link", { name: "Library" }).click();
 
   const table = page.getByRole("table");
@@ -13,5 +13,5 @@ test("library lists documents by status and opens them from the keyboard", async
 
   await page.getByLabel(/Use arrow keys/).focus();
   await page.keyboard.press("Enter");
-  await expect(page.getByLabel("Title")).toHaveValue("Keyboard pick");
+  await expect(page.getByRole("textbox", { name: "Title" })).toHaveValue("Keyboard pick");
 });

@@ -1,11 +1,15 @@
 import { useSyncExternalStore } from "react";
 
 /** Minimal history-API router. Routes: `/`, `/d/:id`, and screen paths added by later features. */
-export type Route = { name: "home" } | { name: "doc"; id: string } | { name: "screen"; path: string };
+export type Route =
+  { name: "home" } | { name: "doc"; id: string; split?: string } | { name: "screen"; path: string };
 
-export function parseRoute(pathname: string): Route {
+export function parseRoute(pathname: string, search = ""): Route {
   const doc = /^\/d\/([^/]+)\/?$/.exec(pathname);
-  if (doc) return { name: "doc", id: decodeURIComponent(doc[1]!) };
+  if (doc) {
+    const split = new URLSearchParams(search).get("split");
+    return { name: "doc", id: decodeURIComponent(doc[1]!), ...(split ? { split } : {}) };
+  }
   if (pathname === "/" || pathname === "") return { name: "home" };
   return { name: "screen", path: pathname };
 }
@@ -22,7 +26,7 @@ function subscribe(fn: () => void) {
 }
 
 export function navigate(path: string, opts: { replace?: boolean } = {}): void {
-  if (path === window.location.pathname) return;
+  if (path === window.location.pathname + window.location.search) return;
   if (opts.replace) window.history.replaceState(null, "", path);
   else window.history.pushState(null, "", path);
   listeners.forEach((l) => l());
@@ -32,8 +36,17 @@ export function usePathname(): string {
   return useSyncExternalStore(subscribe, () => window.location.pathname);
 }
 
+export function useLocation(): string {
+  return useSyncExternalStore(subscribe, () => window.location.pathname + window.location.search);
+}
+
 export function useRoute(): Route {
-  return parseRoute(usePathname());
+  const loc = useLocation();
+  const q = loc.indexOf("?");
+  return q === -1 ? parseRoute(loc) : parseRoute(loc.slice(0, q), loc.slice(q));
 }
 
 export const docPath = (id: string) => `/d/${encodeURIComponent(id)}`;
+
+export const splitPath = (id: string, splitId: string) =>
+  `${docPath(id)}?split=${encodeURIComponent(splitId)}`;

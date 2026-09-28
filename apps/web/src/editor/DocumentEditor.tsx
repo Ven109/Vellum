@@ -15,6 +15,8 @@ interface Props {
   ydoc: Y.Doc;
   /** Markdown to seed an empty document with (used for the welcome draft). */
   initialMarkdown?: string;
+  /** The primary editor drives the top bar and right rail; a split pane does not. */
+  primary?: boolean;
 }
 
 function collectHeadings(editor: Editor): HeadingEntry[] {
@@ -26,7 +28,7 @@ function collectHeadings(editor: Editor): HeadingEntry[] {
   return out;
 }
 
-export function DocumentEditor({ docId, ydoc, initialMarkdown }: Props) {
+export function DocumentEditor({ docId, ydoc, initialMarkdown, primary = true }: Props) {
   const updateDocument = useApp((s) => s.updateDocument);
   const metaTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
@@ -51,11 +53,13 @@ export function DocumentEditor({ docId, ydoc, initialMarkdown }: Props) {
     const session = useDocSession.getState();
     const measure = () => {
       const stats = documentStats(editor.state.doc.textBetween(0, editor.state.doc.content.size, "\n", " "));
-      session.update({ stats, wordCount: stats.words, headings: collectHeadings(editor) });
+      if (primary) session.update({ stats, wordCount: stats.words, headings: collectHeadings(editor) });
       return stats;
     };
-    session.open(docId, editor, 0);
-    useDocSession.setState({ openedWordCount: measure().words });
+    if (primary) {
+      session.open(docId, editor, 0);
+      useDocSession.setState({ openedWordCount: measure().words });
+    }
     // Stats are recomputed at most every 200ms while typing so long documents stay responsive.
     let statsTimer: ReturnType<typeof setTimeout> | undefined;
     const onUpdate = ({ transaction }: { transaction: { docChanged: boolean } }) => {
@@ -74,9 +78,9 @@ export function DocumentEditor({ docId, ydoc, initialMarkdown }: Props) {
       editor.off("update", onUpdate);
       clearTimeout(statsTimer);
       clearTimeout(metaTimer.current);
-      session.close(docId);
+      if (primary) session.close(docId);
     };
-  }, [editor, docId, initialMarkdown, updateDocument]);
+  }, [editor, docId, initialMarkdown, updateDocument, primary]);
 
   return (
     <>

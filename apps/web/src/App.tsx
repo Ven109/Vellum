@@ -1,5 +1,7 @@
 import { useEffect } from "react";
 import { flushAll, hasUnsavedWork } from "./data/ydocs.js";
+import { CommandPalette } from "./components/CommandPalette.js";
+import { CoreCommands } from "./components/CoreCommands.js";
 import { Sidebar } from "./components/Sidebar.js";
 import { EditorScreen } from "./screens/EditorScreen.js";
 import { LibraryScreen } from "./screens/LibraryScreen.js";
@@ -38,15 +40,17 @@ export function App() {
 
   return (
     <div className="vl-app">
+      <CoreCommands />
       <Sidebar />
       <Screen />
+      <CommandPalette />
     </div>
   );
 }
 
 function Screen() {
   const route = useRoute();
-  if (route.name === "doc") return <EditorScreen key={route.id} docId={route.id} />;
+  if (route.name === "doc") return <EditorScreen key={route.id} docId={route.id} splitId={route.split} />;
   if (route.name === "screen" && route.path === "/library") return <LibraryScreen />;
   return (
     <main className="vl-main vl-empty">
