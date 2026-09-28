@@ -2,6 +2,7 @@ import { formatReadingTime } from "@vellum/core";
 import type { DocumentMeta } from "@vellum/core";
 import { Check, CloudOff, Loader2, Share2, Sparkles, TriangleAlert } from "lucide-react";
 import { useAssistant } from "../state/assistant.js";
+import { ModeSwitch } from "./SuggestionsList.js";
 import { useState } from "react";
 import { useApp } from "../state/app.js";
 import { useDocSession } from "../state/session.js";
@@ -57,6 +58,7 @@ export function TopBar({ doc }: { doc: DocumentMeta }) {
           {save.icon}
           {save.text}
         </span>
+        <ModeSwitch />
         <div className="vl-stats-wrap">
           <button
             className="vl-wordcount"

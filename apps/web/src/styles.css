@@ -1883,3 +1883,62 @@ button.vl-wordcount:hover {
   padding: 8px;
   margin: 0;
 }
+
+/* Suggestions */
+ins.vl-sug-ins,
+.vl-prose ins.vl-sug-ins {
+  background: var(--insert);
+  color: var(--insert-ink);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--insert-ink) 50%, transparent);
+}
+
+del.vl-sug-del,
+.vl-prose del.vl-sug-del {
+  background: var(--delete);
+  color: var(--delete-ink);
+  text-decoration: line-through;
+}
+
+.vl-sug-card {
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.vl-sug-card p {
+  margin: 4px 0 8px;
+  font-family: var(--serif);
+}
+
+.vl-bulk-sug {
+  margin-bottom: 8px;
+}
+
+.vl-segmented {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.vl-segmented button {
+  padding: 3px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.vl-segmented button[aria-checked="true"] {
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
+}
+
+.vl-segmented button:disabled {
+  cursor: not-allowed;
+}

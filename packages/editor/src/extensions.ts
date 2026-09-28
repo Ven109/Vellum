@@ -5,6 +5,7 @@ import StarterKit from "@tiptap/starter-kit";
 import { Annotations } from "./annotations.js";
 import { MarkdownPaste } from "./paste.js";
 import { RewriteProposal } from "./proposal.js";
+import { Suggestions } from "./suggestions.js";
 
 export interface VellumExtensionOptions {
   placeholder?: string;
@@ -35,6 +36,7 @@ export function vellumExtensions(options: VellumExtensionOptions = {}): AnyExten
     Annotations,
     MarkdownPaste,
     RewriteProposal,
+    Suggestions,
     ...(options.extra ?? []),
   ];
 }
