@@ -2,7 +2,10 @@ import { expect, test } from "@playwright/test";
 
 test("outline follows the document and the stats popover shows details", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "New draft" }).click();
+  await page
+    .getByRole("navigation", { name: "Workspace" })
+    .getByRole("button", { name: "New draft" })
+    .click();
   await page.getByLabel("Title").fill("Long piece");
   await page.getByLabel("Title").press("Enter");
 

@@ -2,7 +2,10 @@ import { expect, test } from "@playwright/test";
 
 test("autosaves to the server, survives going offline, and syncs on reconnect", async ({ context, page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "New draft" }).click();
+  await page
+    .getByRole("navigation", { name: "Workspace" })
+    .getByRole("button", { name: "New draft" })
+    .click();
   await page.getByLabel("Title").fill("Autosave");
   await page.getByLabel("Title").press("Enter");
   await page.keyboard.type("First line typed online.");

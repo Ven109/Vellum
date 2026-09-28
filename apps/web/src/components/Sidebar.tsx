@@ -1,10 +1,39 @@
-import { ChevronDown, FilePlus2, FolderPlus, Search } from "lucide-react";
+import { ChevronDown, FilePlus2, FolderPlus, Library, Search } from "lucide-react";
+import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 import { useApp } from "../state/app.js";
-import { docPath, navigate, useRoute } from "../state/router.js";
+import { docPath, navigate, usePathname, useRoute } from "../state/router.js";
 
 export function displayTitle(title: string): string {
   return title.trim() || "Untitled";
+}
+
+/** Primary navigation entries. Other screens add themselves here. */
+export const NAV_ITEMS: Array<{ path: string; label: string; icon: ReactNode }> = [
+  { path: "/library", label: "Library", icon: <Library size={15} /> },
+];
+
+function NavLinks() {
+  const pathname = usePathname();
+  return (
+    <ul className="vl-nav">
+      {NAV_ITEMS.map((item) => (
+        <li key={item.path}>
+          <a
+            href={item.path}
+            aria-current={pathname === item.path ? "page" : undefined}
+            onClick={(e) => {
+              e.preventDefault();
+              navigate(item.path);
+            }}
+          >
+            {item.icon}
+            {item.label}
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 export function Sidebar() {
@@ -77,6 +106,8 @@ export function Sidebar() {
           onChange={(e) => setQuery(e.target.value)}
         />
       </label>
+
+      <NavLinks />
 
       <button className="vl-new" onClick={() => void newDraft()}>
         <FilePlus2 size={15} /> New draft

@@ -2,13 +2,13 @@ import { useEffect } from "react";
 import { flushAll, hasUnsavedWork } from "./data/ydocs.js";
 import { Sidebar } from "./components/Sidebar.js";
 import { EditorScreen } from "./screens/EditorScreen.js";
+import { LibraryScreen } from "./screens/LibraryScreen.js";
 import { useApp } from "./state/app.js";
-import { docPath, navigate, useRoute } from "./state/router.js";
+import { navigate, useRoute } from "./state/router.js";
 
 export function App() {
   const ready = useApp((s) => s.ready);
   const init = useApp((s) => s.init);
-  const documents = useApp((s) => s.documents);
   const route = useRoute();
 
   useEffect(() => {
@@ -25,8 +25,8 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    if (ready && route.name === "home" && documents[0]) navigate(docPath(documents[0].id), { replace: true });
-  }, [ready, route.name, documents]);
+    if (ready && route.name === "home") navigate("/library", { replace: true });
+  }, [ready, route.name]);
 
   if (!ready) {
     return (
@@ -39,13 +39,18 @@ export function App() {
   return (
     <div className="vl-app">
       <Sidebar />
-      {route.name === "doc" ? (
-        <EditorScreen key={route.id} docId={route.id} />
-      ) : (
-        <main className="vl-main vl-empty">
-          <p>Create a draft to get started.</p>
-        </main>
-      )}
+      <Screen />
     </div>
+  );
+}
+
+function Screen() {
+  const route = useRoute();
+  if (route.name === "doc") return <EditorScreen key={route.id} docId={route.id} />;
+  if (route.name === "screen" && route.path === "/library") return <LibraryScreen />;
+  return (
+    <main className="vl-main vl-empty">
+      <p>Page not found.</p>
+    </main>
   );
 }
