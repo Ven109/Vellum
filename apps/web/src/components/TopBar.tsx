@@ -1,6 +1,7 @@
 import { formatReadingTime } from "@vellum/core";
 import type { DocumentMeta } from "@vellum/core";
-import { Check, CloudOff, Loader2, Share2, TriangleAlert } from "lucide-react";
+import { Check, CloudOff, Loader2, Share2, Sparkles, TriangleAlert } from "lucide-react";
+import { useAssistant } from "../state/assistant.js";
 import { useState } from "react";
 import { useApp } from "../state/app.js";
 import { useDocSession } from "../state/session.js";
@@ -33,6 +34,7 @@ export function TopBar({ doc }: { doc: DocumentMeta }) {
   const [statsOpen, setStatsOpen] = useState(false);
   const saveState = useDocSession((s) => s.saveState);
   const [copied, setCopied] = useState(false);
+  const assistantOpen = useAssistant((s) => s.open);
   const save = SAVE_LABEL[saveState];
 
   async function share() {
@@ -88,6 +90,14 @@ export function TopBar({ doc }: { doc: DocumentMeta }) {
             </span>
           )}
         </div>
+        <button
+          className="vl-btn"
+          aria-pressed={assistantOpen}
+          title="Assistant (Ctrl/⌘ J)"
+          onClick={() => useAssistant.getState().toggle()}
+        >
+          <Sparkles size={14} /> Assistant
+        </button>
         <button className="vl-btn vl-btn-primary" onClick={() => void share()}>
           <Share2 size={14} /> {copied ? "Link copied" : "Share"}
         </button>

@@ -1404,3 +1404,183 @@ button.vl-wordcount:hover {
   align-items: flex-start;
   gap: 6px;
 }
+
+/* Assistant */
+.vl-assistant {
+  display: flex;
+  flex-direction: column;
+  width: 360px;
+  padding: 0;
+}
+
+.vl-assistant-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 52px;
+  padding: 0 12px 0 16px;
+  border-bottom: 1px solid var(--line);
+  color: var(--accent);
+}
+
+.vl-assistant-head h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.vl-model {
+  font-size: 12px;
+}
+
+.vl-assistant-empty {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  padding: 24px 20px;
+  color: var(--ink-2);
+  line-height: 1.55;
+}
+
+.vl-assistant-empty h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 16px;
+}
+
+.vl-assistant-empty p {
+  margin: 0;
+}
+
+.vl-thread {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px;
+}
+
+.vl-thread-intro {
+  line-height: 1.5;
+}
+
+.vl-msg + .vl-msg {
+  margin-top: 14px;
+}
+
+.vl-msg-user p {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 12px 12px 4px 12px;
+  background: var(--panel-2);
+  white-space: pre-wrap;
+}
+
+.vl-msg-text {
+  white-space: pre-wrap;
+  line-height: 1.55;
+}
+
+.vl-msg-meta {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.vl-msg-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  background: var(--delete);
+  color: var(--delete-ink);
+}
+
+.vl-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+  font-size: 11px;
+}
+
+.vl-source {
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink-2);
+}
+
+.vl-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 16px;
+  border-top: 1px solid var(--line);
+}
+
+.vl-pill {
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper);
+  font-size: 12px;
+}
+
+.vl-pill:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.vl-pill:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.vl-composer {
+  padding: 8px 16px 16px;
+}
+
+.vl-context {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+.vl-context button {
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+}
+
+.vl-context button[aria-checked="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.vl-context button:disabled {
+  opacity: 0.45;
+}
+
+.vl-context .vl-muted {
+  margin-left: auto;
+}
+
+.vl-composer textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+  resize: vertical;
+}
+
+.vl-composer-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+}

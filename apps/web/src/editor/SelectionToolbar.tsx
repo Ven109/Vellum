@@ -1,6 +1,7 @@
 import type { Editor } from "@tiptap/core";
 import { BubbleMenu } from "@tiptap/react/menus";
-import { Bold, Code, Heading2, Italic, Link2, Quote, Strikethrough } from "lucide-react";
+import { Bold, Code, Heading2, Italic, Link2, Quote, Sparkles, Strikethrough } from "lucide-react";
+import { useAssistant } from "../state/assistant.js";
 import type { ReactNode } from "react";
 
 export interface ToolbarAction {
@@ -71,8 +72,19 @@ export const FORMAT_ACTIONS: ToolbarAction[] = [
   },
 ];
 
-/** Extra actions (comment, ask the assistant, ...) registered by other features. */
-export const extraSelectionActions: ToolbarAction[] = [];
+/** Extra actions (comment, ...) registered by other features. */
+export const extraSelectionActions: ToolbarAction[] = [
+  {
+    id: "ask",
+    label: "Ask the assistant",
+    icon: <Sparkles size={16} />,
+    run: () => {
+      const a = useAssistant.getState();
+      a.setContextMode("selection");
+      a.setOpen(true);
+    },
+  },
+];
 
 export function SelectionToolbar({ editor }: { editor: Editor }) {
   const actions = [...FORMAT_ACTIONS, ...extraSelectionActions];
