@@ -1,3 +1,4 @@
+import { formatReadingTime } from "@vellum/core";
 import type { DocumentMeta } from "@vellum/core";
 import { Check, CloudOff, Loader2, Share2, TriangleAlert } from "lucide-react";
 import { useState } from "react";
@@ -28,6 +29,8 @@ export function TopBar({ doc }: { doc: DocumentMeta }) {
   const collection = useApp((s) => s.collections.find((c) => c.id === doc.collectionId));
   const user = useApp((s) => s.user);
   const wordCount = useDocSession((s) => s.wordCount);
+  const stats = useDocSession((s) => s.stats);
+  const [statsOpen, setStatsOpen] = useState(false);
   const saveState = useDocSession((s) => s.saveState);
   const [copied, setCopied] = useState(false);
   const save = SAVE_LABEL[saveState];
@@ -52,9 +55,32 @@ export function TopBar({ doc }: { doc: DocumentMeta }) {
           {save.icon}
           {save.text}
         </span>
-        <span className="vl-wordcount" data-testid="word-count">
-          {wordCount.toLocaleString()} {wordCount === 1 ? "word" : "words"}
-        </span>
+        <div className="vl-stats-wrap">
+          <button
+            className="vl-wordcount"
+            data-testid="word-count"
+            aria-expanded={statsOpen}
+            aria-haspopup="dialog"
+            onClick={() => setStatsOpen((o) => !o)}
+          >
+            {wordCount.toLocaleString()} {wordCount === 1 ? "word" : "words"}
+          </button>
+          <span className="vl-readtime">{formatReadingTime(stats.readingMinutes)}</span>
+          {statsOpen && (
+            <div className="vl-popover" role="dialog" aria-label="Document statistics">
+              <dl>
+                <dt>Words</dt>
+                <dd>{stats.words.toLocaleString()}</dd>
+                <dt>Characters</dt>
+                <dd>{stats.characters.toLocaleString()}</dd>
+                <dt>Characters without spaces</dt>
+                <dd>{stats.charactersNoSpaces.toLocaleString()}</dd>
+                <dt>Reading time</dt>
+                <dd>{formatReadingTime(stats.readingMinutes)}</dd>
+              </dl>
+            </div>
+          )}
+        </div>
         <div className="vl-avatars" aria-label="People in this document">
           {user && (
             <span className="vl-avatar" style={{ background: user.avatarColor }} title={user.name}>

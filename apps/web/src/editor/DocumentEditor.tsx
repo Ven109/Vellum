@@ -1,6 +1,6 @@
 import Collaboration from "@tiptap/extension-collaboration";
 import { EditorContent, useEditor } from "@tiptap/react";
-import { countWords } from "@vellum/core";
+import { documentStats } from "@vellum/core";
 import { markdownToDoc, vellumExtensions } from "@vellum/editor";
 import { useEffect, useRef } from "react";
 import type * as Y from "yjs";
@@ -49,21 +49,30 @@ export function DocumentEditor({ docId, ydoc, initialMarkdown }: Props) {
       editor.commands.setContent(markdownToDoc(editor.schema, initialMarkdown).toJSON());
     }
     const session = useDocSession.getState();
-    const words = () => countWords(editor.state.doc.textBetween(0, editor.state.doc.content.size, "\n", " "));
-    session.open(docId, editor, words());
-    session.update({ headings: collectHeadings(editor) });
+    const measure = () => {
+      const stats = documentStats(editor.state.doc.textBetween(0, editor.state.doc.content.size, "\n", " "));
+      session.update({ stats, wordCount: stats.words, headings: collectHeadings(editor) });
+      return stats;
+    };
+    session.open(docId, editor, 0);
+    useDocSession.setState({ openedWordCount: measure().words });
+    // Stats are recomputed at most every 200ms while typing so long documents stay responsive.
+    let statsTimer: ReturnType<typeof setTimeout> | undefined;
     const onUpdate = ({ transaction }: { transaction: { docChanged: boolean } }) => {
-      if (!transaction.docChanged) return;
-      const wordCount = words();
-      session.update({ wordCount, headings: collectHeadings(editor) });
-      clearTimeout(metaTimer.current);
-      metaTimer.current = setTimeout(() => {
-        void updateDocument(docId, { wordCount, updatedAt: new Date().toISOString() });
-      }, 800);
+      if (!transaction.docChanged || statsTimer) return;
+      statsTimer = setTimeout(() => {
+        statsTimer = undefined;
+        const { words } = measure();
+        clearTimeout(metaTimer.current);
+        metaTimer.current = setTimeout(() => {
+          void updateDocument(docId, { wordCount: words, updatedAt: new Date().toISOString() });
+        }, 600);
+      }, 200);
     };
     editor.on("update", onUpdate);
     return () => {
       editor.off("update", onUpdate);
+      clearTimeout(statsTimer);
       clearTimeout(metaTimer.current);
       session.close(docId);
     };
