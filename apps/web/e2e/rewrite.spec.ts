@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { addAnthropicKey, mockAnthropic, newDraft } from "./fixtures.js";
+import { addAnthropicKey, mockAnthropic, selectText, newDraft } from "./fixtures.js";
 
 test("rewrite shows a diff, and accept, try again and discard behave", async ({ page }) => {
   let attempt = 0;
@@ -17,12 +17,10 @@ test("rewrite shows a diff, and accept, try again and discard behave", async ({ 
   await page.keyboard.type("Every workshop has one tool that nobody ever talks about.");
   const prose = page.locator(".vl-prose");
 
-  // Select "one tool that nobody ever talks about." by dragging with the keyboard.
-  await page.keyboard.press("End");
-  for (let i = 0; i < "one tool that nobody ever talks about.".length; i++)
-    await page.keyboard.press("Shift+ArrowLeft");
+  await selectText(page, "one tool that nobody ever talks about.");
   await page.keyboard.press("ControlOrMeta+j");
   const panel = page.getByRole("complementary", { name: "Assistant" });
+  await expect(panel.getByTestId("attached-context")).toContainText("Selection · 7 words");
   await panel.getByRole("button", { name: "Tighten" }).click();
 
   const card = page.getByRole("dialog", { name: "Proposed rewrite" });
@@ -56,8 +54,8 @@ test("rewrite shows a diff, and accept, try again and discard behave", async ({ 
   await expect(prose).toHaveText("Every workshop has one tool that nobody ever talks about.");
 
   // Discard leaves no trace.
-  await page.keyboard.press("End");
-  for (let i = 0; i < "about.".length; i++) await page.keyboard.press("Shift+ArrowLeft");
+  await selectText(page, "about.");
+  await expect(panel.getByTestId("attached-context")).toContainText("Selection · 1 words");
   await panel.getByRole("button", { name: "Clarify" }).click();
   await expect(card.getByRole("button", { name: "Discard" })).toBeVisible();
   await page.keyboard.press("Escape");

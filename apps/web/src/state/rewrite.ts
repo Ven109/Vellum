@@ -8,6 +8,7 @@ import {
   startProposal,
   updateProposal,
 } from "@vellum/editor";
+import { yUndoPluginKey } from "@tiptap/y-tiptap";
 import { create } from "zustand";
 import { redact } from "../data/providers.js";
 import { recordVersion } from "../data/versions.js";
@@ -131,7 +132,14 @@ export const useRewrite = create<RewriteState>((set, get) => ({
     const editor = useDocSession.getState().editor;
     const docId = useDocSession.getState().docId;
     if (!editor || !docId) return;
+    // Close the current undo group before and after, so Accept is exactly one undo step even when the
+    // writer was typing a moment ago (the CRDT undo manager otherwise merges changes within 500ms).
+    const undo = (
+      yUndoPluginKey.getState(editor.state) as { undoManager?: { stopCapturing(): void } } | undefined
+    )?.undoManager;
+    undo?.stopCapturing();
     const applied = acceptProposal(editor);
+    undo?.stopCapturing();
     set({ active: false, range: null, error: null });
     if (!applied) return;
     const user = useApp.getState().user;

@@ -90,6 +90,34 @@ export async function addAnthropicKey(page: Page, key = "sk-ant-test-key-1234") 
   await page.getByText("Configured providers").waitFor();
 }
 
+/** Select an exact piece of text in the editor (dev builds expose the editor for tests). */
+export async function selectText(page: Page, text: string) {
+  await page.evaluate((needle) => {
+    const ed = (
+      window as unknown as {
+        __vellumSession: {
+          getState(): {
+            editor: {
+              state: {
+                doc: { descendants(f: (n: { isText: boolean; text?: string }, p: number) => void): void };
+              };
+              commands: { setTextSelection(r: { from: number; to: number }): void };
+              view: { focus(): void };
+            };
+          };
+        };
+      }
+    ).__vellumSession.getState().editor;
+    let from = -1;
+    ed.state.doc.descendants((n, p) => {
+      if (from === -1 && n.isText && n.text!.includes(needle)) from = p + n.text!.indexOf(needle);
+    });
+    if (from === -1) throw new Error(`text not found: ${needle}`);
+    ed.commands.setTextSelection({ from, to: from + needle.length });
+    ed.view.focus(); // synchronous, unlike commands.focus(), so the next keystroke lands in the editor
+  }, text);
+}
+
 /** Create a draft from the sidebar and wait until its (empty) editor is showing. */
 export async function newDraft(page: Page) {
   const before = page.url();

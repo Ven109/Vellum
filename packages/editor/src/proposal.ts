@@ -91,6 +91,25 @@ function decorations(state: EditorState, p: ProposalState): DecorationSet {
   return DecorationSet.create(state.doc, decos);
 }
 
+/** Find `text` inside a single textblock, choosing the occurrence closest to `near`. */
+export function relocate(doc: PMNode, text: string, near: number): { from: number; to: number } | null {
+  if (!text || text.includes("\n")) return null;
+  let best: { from: number; to: number } | null = null;
+  doc.descendants((node, pos) => {
+    if (!node.isTextblock) return true;
+    const content = node.textBetween(0, node.content.size, "\n", " ");
+    for (let i = content.indexOf(text); i !== -1; i = content.indexOf(text, i + 1)) {
+      // Only plain-text children keep offsets aligned with positions; check the slice matches.
+      const from = pos + 1 + i;
+      const to = from + text.length;
+      if (doc.textBetween(from, to, "\n", " ") !== text) continue;
+      if (!best || Math.abs(from - near) < Math.abs(best.from - near)) best = { from, to };
+    }
+    return false;
+  });
+  return best;
+}
+
 export function proposalPlugin(): Plugin<ProposalState | null> {
   return new Plugin<ProposalState | null>({
     key: proposalKey,
@@ -107,8 +126,13 @@ export function proposalPlugin(): Plugin<ProposalState | null> {
           const to = tr.mapping.map(value.to, -1);
           // If the proposed range itself was edited or deleted, the proposal no longer applies.
           const current = tr.doc.textBetween(from, Math.max(from, to), "\n\n", " ");
-          if (to <= from || current !== value.original) return null;
-          next = { ...value, from, to };
+          if (to <= from || current !== value.original) {
+            // A collaborative re-render replaces the whole document, which collapses mapped positions.
+            // Find the untouched original text again, nearest to where it was.
+            const found = relocate(tr.doc, value.original, from);
+            if (!found) return null;
+            next = { ...value, ...found };
+          } else next = { ...value, from, to };
         }
         if (meta?.type === "update") next = { ...next, proposed: meta.proposed, streaming: meta.streaming };
         return next;

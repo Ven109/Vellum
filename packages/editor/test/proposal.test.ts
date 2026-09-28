@@ -99,3 +99,21 @@ describe("rewrite proposals", () => {
     expect(editor.getHTML()).toBe("<p>Uno.</p><p>Dos.</p><p>And a new one.</p><p>Three.</p>");
   });
 });
+
+describe("relocate", () => {
+  it("finds the original text nearest the old position", async () => {
+    const { relocate } = await import("../src/proposal.js");
+    const { getSchema } = await import("@tiptap/core");
+    const { vellumExtensions } = await import("../src/extensions.js");
+    const schema = getSchema(vellumExtensions());
+    const doc = schema.node("doc", null, [
+      schema.node("paragraph", null, [schema.text("one two one")]),
+      schema.node("paragraph", null, [schema.text("three one")]),
+    ]);
+    expect(relocate(doc, "one", 0)).toEqual({ from: 1, to: 4 });
+    expect(relocate(doc, "one", 9)).toEqual({ from: 9, to: 12 });
+    expect(relocate(doc, "one", 20)).toEqual({ from: 20, to: 23 });
+    expect(relocate(doc, "missing", 0)).toBeNull();
+    expect(relocate(doc, "a\nb", 0)).toBeNull();
+  });
+});
