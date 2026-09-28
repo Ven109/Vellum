@@ -1,4 +1,5 @@
 import { QUICK_ACTIONS } from "@vellum/ai";
+import { useRewrite } from "../state/rewrite.js";
 import { countWords } from "@vellum/core";
 import { AlertTriangle, ArrowUp, KeyRound, RotateCcw, Sparkles, Square, Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -8,14 +9,6 @@ import type { ThreadMessage } from "../state/assistant.js";
 import { useProviders } from "../state/providers.js";
 import { navigate } from "../state/router.js";
 import { useDocSession } from "../state/session.js";
-
-/** Extra quick actions (rewrites) registered by the rewrite pipeline. */
-export const extraQuickActions: Array<{
-  id: string;
-  label: string;
-  needsSelection: boolean;
-  run: () => void;
-}> = [];
 
 function useSelectionWords(): number {
   const editor = useDocSession((s) => s.editor);
@@ -88,6 +81,7 @@ export function AssistantPanel() {
   const workspace = useApp((s) => s.workspace);
   const docWords = useDocSession((s) => s.wordCount);
   const selWords = useSelectionWords();
+  const rewriting = useRewrite((r) => r.streaming);
   const [text, setText] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -164,12 +158,13 @@ export function AssistantPanel() {
           </div>
 
           <div className="vl-pills" role="group" aria-label="Quick actions">
-            {extraQuickActions.map((a) => (
+            {QUICK_ACTIONS.filter((a) => a.kind === "rewrite").map((a) => (
               <button
                 key={a.id}
                 className="vl-pill"
-                disabled={busy || (a.needsSelection && selWords === 0)}
-                onClick={a.run}
+                disabled={busy || rewriting || selWords === 0}
+                title={selWords === 0 ? "Select a passage first" : a.instruction}
+                onClick={() => void useRewrite.getState().request(a.instruction)}
               >
                 {a.label}
               </button>
@@ -238,14 +233,29 @@ export function AssistantPanel() {
                   <Square size={12} /> Stop
                 </button>
               ) : (
-                <button
-                  type="submit"
-                  className="vl-btn vl-btn-primary"
-                  disabled={!text.trim()}
-                  aria-label="Send"
-                >
-                  <ArrowUp size={14} /> Send
-                </button>
+                <>
+                  {selWords > 0 && contextMode === "selection" && (
+                    <button
+                      type="button"
+                      className="vl-btn"
+                      disabled={!text.trim() || rewriting}
+                      onClick={() => {
+                        void useRewrite.getState().request(text.trim());
+                        setText("");
+                      }}
+                    >
+                      Rewrite selection
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    className="vl-btn vl-btn-primary"
+                    disabled={!text.trim()}
+                    aria-label="Send"
+                  >
+                    <ArrowUp size={14} /> Send
+                  </button>
+                </>
               )}
             </div>
           </form>

@@ -8,3 +8,4 @@ export * from "./stats.js";
 export * from "./library.js";
 export * from "./fuzzy.js";
 export * from "./search.js";
+export * from "./diff.js";

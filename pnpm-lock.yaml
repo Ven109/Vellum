@@ -205,6 +205,9 @@ importers:
       '@tiptap/starter-kit':
         specifier: ^3.31.3
         version: 3.31.3
+      '@vellum/core':
+        specifier: workspace:*
+        version: link:../core
       markdown-it:
         specifier: ^15.0.2
         version: 15.0.2

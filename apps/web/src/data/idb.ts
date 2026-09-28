@@ -1,6 +1,6 @@
 import { openDB } from "idb";
 import type { DBSchema, IDBPDatabase } from "idb";
-import type { Collection, DocumentMeta, User, Workspace } from "@vellum/core";
+import type { Collection, DocumentMeta, User, Version, Workspace } from "@vellum/core";
 import type { Repository } from "./repository.js";
 
 interface VellumDB extends DBSchema {
@@ -9,19 +9,25 @@ interface VellumDB extends DBSchema {
   collections: { key: string; value: Collection; indexes: { byWorkspace: string } };
   documents: { key: string; value: DocumentMeta; indexes: { byWorkspace: string } };
   settings: { key: string; value: unknown };
+  versions: { key: string; value: Version; indexes: { byDocument: string } };
 }
 
 export class IndexedDbRepository implements Repository {
   private db: Promise<IDBPDatabase<VellumDB>>;
 
   constructor(name = "vellum") {
-    this.db = openDB<VellumDB>(name, 1, {
-      upgrade(db) {
-        db.createObjectStore("users", { keyPath: "id" });
-        db.createObjectStore("workspaces", { keyPath: "id" });
-        db.createObjectStore("collections", { keyPath: "id" }).createIndex("byWorkspace", "workspaceId");
-        db.createObjectStore("documents", { keyPath: "id" }).createIndex("byWorkspace", "workspaceId");
-        db.createObjectStore("settings");
+    this.db = openDB<VellumDB>(name, 2, {
+      upgrade(db, oldVersion) {
+        if (oldVersion < 1) {
+          db.createObjectStore("users", { keyPath: "id" });
+          db.createObjectStore("workspaces", { keyPath: "id" });
+          db.createObjectStore("collections", { keyPath: "id" }).createIndex("byWorkspace", "workspaceId");
+          db.createObjectStore("documents", { keyPath: "id" }).createIndex("byWorkspace", "workspaceId");
+          db.createObjectStore("settings");
+        }
+        if (oldVersion < 2) {
+          db.createObjectStore("versions", { keyPath: "id" }).createIndex("byDocument", "documentId");
+        }
       },
     });
   }
@@ -68,6 +74,17 @@ export class IndexedDbRepository implements Repository {
   }
   async deleteDocument(id: string) {
     await (await this.db).delete("documents", id);
+  }
+
+  async putVersion(version: Version) {
+    await (await this.db).put("versions", version);
+  }
+  async listVersions(documentId: string) {
+    const all = await (await this.db).getAllFromIndex("versions", "byDocument", documentId);
+    return all.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+  async deleteVersion(id: string) {
+    await (await this.db).delete("versions", id);
   }
 
   async getSetting<T>(key: string) {
