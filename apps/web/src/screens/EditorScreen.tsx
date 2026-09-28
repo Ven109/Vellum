@@ -73,6 +73,12 @@ function TitleField({ live, docId }: { live: LiveDoc; docId: string }) {
     if (!ytitle.length && meta?.title) ytitle.insert(0, meta.title);
     const observer = () => {
       const next = ytitle.toString();
+      if (import.meta.env.DEV) {
+        const w = window as unknown as { __titleLog?: string[] };
+        (w.__titleLog ??= []).push(
+          `${JSON.stringify(next)} ${new Error().stack?.split("\n").slice(2, 9).join(" | ")}`,
+        );
+      }
       setValue(next);
       void updateDocument(docId, { title: next, updatedAt: new Date().toISOString() });
     };

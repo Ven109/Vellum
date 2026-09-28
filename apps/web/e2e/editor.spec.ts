@@ -33,6 +33,10 @@ test("write in a new draft and keep it after reload", async ({ page }) => {
   await expect(page.locator(".vl-prose strong")).toHaveText("nobody");
 
   await expect(page.getByRole("status").filter({ hasText: /Saved|Saving|Offline/ })).toHaveText("Saved");
+  const before = await page.evaluate(() =>
+    JSON.stringify((window as unknown as { __titleLog?: string[] }).__titleLog ?? []),
+  );
+  expect(await page.getByRole("textbox", { name: "Title" }).inputValue(), before).toBe("On workshops");
   await page.reload();
   await page.waitForTimeout(1500);
   const diag = await page.evaluate(() => {
