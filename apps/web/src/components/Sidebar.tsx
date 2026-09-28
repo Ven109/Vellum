@@ -1,7 +1,8 @@
 import { ChevronDown, FilePlus2, FolderPlus, Library, Search } from "lucide-react";
 import type { ReactNode } from "react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useApp } from "../state/app.js";
+import { MOD_KEY, useCommands } from "../state/commands.js";
 import { docPath, navigate, usePathname, useRoute } from "../state/router.js";
 
 export function displayTitle(title: string): string {
@@ -41,13 +42,9 @@ export function Sidebar() {
     useApp();
   const route = useRoute();
   const activeId = route.name === "doc" ? route.id : null;
-  const [query, setQuery] = useState("");
   const [switcherOpen, setSwitcherOpen] = useState(false);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return q ? documents.filter((d) => displayTitle(d.title).toLowerCase().includes(q)) : documents;
-  }, [documents, query]);
+  const filtered = documents;
 
   const unfiled = filtered.filter((d) => !d.collectionId && !d.isTemplate);
 
@@ -96,16 +93,11 @@ export function Sidebar() {
         )}
       </div>
 
-      <label className="vl-search">
+      <button className="vl-search" onClick={() => useCommands.getState().openPalette()}>
         <Search size={14} aria-hidden />
-        <input
-          type="search"
-          placeholder="Search"
-          aria-label="Search documents"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-      </label>
+        <span>Search</span>
+        <kbd>{MOD_KEY}K</kbd>
+      </button>
 
       <NavLinks />
 
