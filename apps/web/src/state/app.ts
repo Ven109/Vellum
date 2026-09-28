@@ -30,6 +30,7 @@ export interface AppState {
   deleteCollection(id: string): Promise<void>;
   reorderCollections(orderedIds: string[]): Promise<void>;
   switchWorkspace(id: string): Promise<void>;
+  updateWorkspaceSettings(patch: Partial<Workspace["settings"]>): Promise<void>;
 }
 
 const initialising = new WeakMap<Repository, Promise<void>>();
@@ -189,6 +190,22 @@ export const useApp = create<AppState>((set, get) => {
         .filter((c): c is Collection => c !== null);
       set({ collections: next });
       for (const c of next) await repo.putCollection(c);
+    },
+
+    async updateWorkspaceSettings(patch) {
+      const { repo, workspace, user } = get();
+      if (!workspace) return;
+      const next: Workspace = {
+        ...workspace,
+        settings: {
+          ...workspace.settings,
+          ...patch,
+          updatedAt: new Date().toISOString(),
+          updatedBy: user?.id,
+        },
+      };
+      await repo.putWorkspace(next);
+      set({ workspace: next, workspaces: get().workspaces.map((w) => (w.id === next.id ? next : w)) });
     },
 
     async switchWorkspace(id) {

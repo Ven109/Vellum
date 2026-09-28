@@ -1,4 +1,94 @@
-import type { Page } from "@playwright/test";
+import type { Page, Route } from "@playwright/test";
+
+export function anthropicSse(text: string, opts: { input?: number; output?: number } = {}): string {
+  const ev = (name: string, data: unknown) => `event: ${name}\ndata: ${JSON.stringify(data)}\n\n`;
+  const chunks = text.match(/.{1,12}/gs) ?? [];
+  return [
+    ev("message_start", {
+      type: "message_start",
+      message: {
+        id: "msg_1",
+        type: "message",
+        role: "assistant",
+        model: "claude-opus-5-5",
+        content: [],
+        stop_reason: null,
+        stop_sequence: null,
+        usage: { input_tokens: opts.input ?? 20, output_tokens: 1 },
+      },
+    }),
+    ev("content_block_start", {
+      type: "content_block_start",
+      index: 0,
+      content_block: { type: "text", text: "" },
+    }),
+    ...chunks.map((t) =>
+      ev("content_block_delta", {
+        type: "content_block_delta",
+        index: 0,
+        delta: { type: "text_delta", text: t },
+      }),
+    ),
+    ev("content_block_stop", { type: "content_block_stop", index: 0 }),
+    ev("message_delta", {
+      type: "message_delta",
+      delta: { stop_reason: "end_turn", stop_sequence: null },
+      usage: { output_tokens: opts.output ?? 10 },
+    }),
+    ev("message_stop", { type: "message_stop" }),
+  ].join("");
+}
+
+/** Intercept Anthropic API calls. `reply` decides the text for each request body. */
+export async function mockAnthropic(
+  page: Page,
+  reply: (body: {
+    messages: Array<{ role: string; content: string }>;
+    system?: string;
+  }) => string | { status: number; error: { type: string; message: string } },
+  seen: Array<{ headers: Record<string, string>; body: unknown }> = [],
+) {
+  await page.route("https://api.anthropic.com/**", async (route: Route) => {
+    const req = route.request();
+    if (req.method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors() });
+    const body = req.postDataJSON() as {
+      messages: Array<{ role: string; content: string }>;
+      system?: string;
+    };
+    seen.push({ headers: req.headers(), body });
+    const out = reply(body);
+    if (typeof out !== "string") {
+      return route.fulfill({
+        status: out.status,
+        headers: { ...cors(), "content-type": "application/json" },
+        body: JSON.stringify({ type: "error", error: out.error }),
+      });
+    }
+    return route.fulfill({
+      status: 200,
+      headers: { ...cors(), "content-type": "text/event-stream" },
+      body: anthropicSse(out),
+    });
+  });
+  return seen;
+}
+
+function cors() {
+  return {
+    "access-control-allow-origin": "*",
+    "access-control-allow-headers": "*",
+    "access-control-allow-methods": "*",
+  };
+}
+
+export async function addAnthropicKey(page: Page, key = "sk-ant-test-key-1234") {
+  await page.goto("/settings/ai");
+  await page.getByLabel("API key", { exact: true }).fill(key);
+  await page.getByRole("button", { name: "Test connection" }).click();
+  await page.getByText(/Connected to/).waitFor();
+  await page.getByRole("button", { name: "Save provider" }).click();
+  await page.getByText("Configured providers").waitFor();
+}
 
 /** Create a draft from the sidebar and wait until its (empty) editor is showing. */
 export async function newDraft(page: Page) {

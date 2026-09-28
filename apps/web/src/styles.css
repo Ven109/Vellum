@@ -1206,3 +1206,201 @@ button.vl-wordcount:hover {
 .vl-menu .vl-danger {
   color: var(--danger);
 }
+
+/* Settings pages */
+.vl-settings-page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 32px 24px 80px;
+}
+
+.vl-settings-page h1 {
+  margin: 0 0 8px;
+  font-family: var(--serif);
+  font-size: 30px;
+}
+
+.vl-lede {
+  margin: 0 0 24px;
+  color: var(--ink-2);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.vl-card {
+  margin-bottom: 20px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+}
+
+.vl-card h2 {
+  margin: 0 0 14px;
+  font-size: 16px;
+}
+
+.vl-provider-kinds {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 16px;
+  padding: 0;
+  border: 0;
+}
+
+.vl-provider-kinds legend {
+  margin-bottom: 8px;
+  color: var(--muted);
+}
+
+.vl-kind {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.vl-kind input {
+  position: absolute;
+  opacity: 0;
+}
+
+.vl-kind span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.vl-kind[data-selected] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.vl-kind:focus-within {
+  outline: 2px solid var(--focus);
+}
+
+.vl-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.vl-form-grid .vl-field {
+  display: grid;
+  gap: 6px;
+}
+
+.vl-form-grid label {
+  display: grid;
+  gap: 6px;
+  color: var(--ink-2);
+  font-weight: 500;
+}
+
+.vl-form-grid .vl-input {
+  min-width: 0;
+  font-weight: 400;
+}
+
+.vl-hint,
+.vl-link {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.vl-link:disabled {
+  color: var(--muted);
+}
+
+.vl-privacy {
+  display: flex;
+  gap: 10px;
+  margin: 18px 0;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--ink-2);
+  line-height: 1.5;
+}
+
+.vl-privacy svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--ok);
+}
+
+.vl-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.vl-test-result {
+  margin-top: 12px;
+  min-height: 20px;
+}
+
+.vl-ok,
+.vl-err {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.vl-ok {
+  color: var(--ok);
+}
+
+.vl-err {
+  color: var(--danger);
+}
+
+.vl-err small {
+  color: var(--muted);
+}
+
+.vl-provider-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vl-provider-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+
+.vl-provider-list li:first-child {
+  border-top: 0;
+}
+
+.vl-provider-list .vl-muted {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.vl-inline-input {
+  min-width: 0;
+  width: 200px;
+  padding: 2px 6px;
+}
+
+.vl-row-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
