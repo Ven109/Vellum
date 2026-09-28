@@ -13,7 +13,10 @@
     "typecheck": "tsc --noEmit -p ."
   },
   "dependencies": {
+    "lib0": "^0.2.119",
+    "y-protocols": "^1.0.7",
     "yaml": "^2.9.1",
+    "yjs": "^13.6.33",
     "zod": "^4.6.5"
   }
 }
