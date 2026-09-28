@@ -1,2 +1,5 @@
 /** Shared domain logic for Vellum: data model, document format and pure helpers. */
-export const VELLUM_FORMAT_VERSION = 1;
+export * from "./ids.js";
+export * from "./model.js";
+export * from "./format.js";
+export { DOCUMENT_FORMAT_VERSION as VELLUM_FORMAT_VERSION } from "./format.js";
