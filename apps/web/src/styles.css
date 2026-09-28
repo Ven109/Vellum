@@ -1136,3 +1136,73 @@ button.vl-wordcount:hover {
   color: var(--muted);
   font-size: 12px;
 }
+
+.vl-palette-snippet {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.vl-collection-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vl-collection-name[draggable="true"] {
+  cursor: grab;
+}
+
+.vl-collection-menu {
+  position: relative;
+  opacity: 0;
+}
+
+.vl-collection-name:hover .vl-collection-menu,
+.vl-collection-menu:focus-within {
+  opacity: 1;
+}
+
+.vl-menu-right {
+  left: auto;
+  right: 0;
+  min-width: 180px;
+}
+
+.vl-collection[data-drop-target] {
+  border-radius: var(--radius);
+  outline: 2px dashed var(--accent);
+  outline-offset: -2px;
+}
+
+.vl-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 8px;
+}
+
+.vl-menu .vl-swatch {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.vl-menu .vl-swatch[aria-checked="true"] {
+  box-shadow:
+    0 0 0 2px var(--paper),
+    0 0 0 4px var(--ink);
+}
+
+.vl-menu .vl-danger {
+  color: var(--danger);
+}

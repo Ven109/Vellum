@@ -3,6 +3,7 @@ import type { FuzzyMatch } from "@vellum/core";
 import { CornerDownLeft, FileText, FilePlus2, TerminalSquare } from "lucide-react";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, ReactNode } from "react";
+import { loadSearchIndex, onIndexChange, searchIndexSync } from "../data/search.js";
 import { useApp } from "../state/app.js";
 import { MOD_KEY, useCommands } from "../state/commands.js";
 import type { Command } from "../state/commands.js";
@@ -10,7 +11,7 @@ import { docPath, navigate, splitPath, useRoute } from "../state/router.js";
 import { displayTitle } from "./Sidebar.js";
 
 type Item =
-  | { kind: "doc"; id: string; title: string; subtitle?: string; match: FuzzyMatch }
+  | { kind: "doc"; id: string; title: string; subtitle?: string; snippet?: string; match: FuzzyMatch }
   | { kind: "command"; command: Command; match: FuzzyMatch }
   | { kind: "create"; title: string };
 
@@ -47,6 +48,12 @@ export function CommandPalette() {
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
+  const [indexVersion, setIndexVersion] = useState(0);
+
+  useEffect(() => {
+    void loadSearchIndex().then(() => setIndexVersion((v) => v + 1));
+    return onIndexChange(() => setIndexVersion((v) => v + 1));
+  }, []);
 
   useEffect(() => {
     if (paletteOpen) {
@@ -83,10 +90,29 @@ export function CommandPalette() {
       subtitle: colName.get(r.item.collectionId ?? "") ?? (r.item.isTemplate ? "Template" : "Unfiled"),
       match: r.match,
     }));
-    const out = [...docItems, ...(term ? cmdItems.slice(0, 6) : cmdItems.slice(0, 6))];
+    // Full-text hits in bodies, for documents whose titles did not already match.
+    const index = searchIndexSync();
+    if (index && term.trim().length >= 2) {
+      const seen = new Set(docItems.map((d) => (d.kind === "doc" ? d.id : "")));
+      const byId = new Map(docs.map((d) => [d.id, d]));
+      for (const hit of index.search(term, 15)) {
+        const meta = byId.get(hit.id);
+        if (!meta || seen.has(hit.id)) continue;
+        docItems.push({
+          kind: "doc",
+          id: hit.id,
+          title: displayTitle(meta.title),
+          subtitle: colName.get(meta.collectionId ?? "") ?? "Unfiled",
+          snippet: hit.snippet,
+          match: { score: 0, indices: [] },
+        });
+      }
+    }
+    const out = [...docItems, ...cmdItems.slice(0, 6)];
     if (term.trim() && docItems.length === 0) out.push({ kind: "create", title: term.trim() });
     return out;
-  }, [commands, commandMode, term, documents, collections]);
+    // indexVersion re-runs the search when the index finishes loading or changes.
+  }, [commands, commandMode, term, documents, collections, indexVersion]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => setActive(0), [query]);
   useEffect(() => {
@@ -183,6 +209,7 @@ export function CommandPalette() {
                         <FileText size={15} aria-hidden />
                         <span className="vl-palette-title">
                           <Highlight text={item.title} indices={item.match.indices} />
+                          {item.snippet && <span className="vl-palette-snippet">{item.snippet}</span>}
                         </span>
                         <span className="vl-palette-sub">{item.subtitle}</span>
                       </>

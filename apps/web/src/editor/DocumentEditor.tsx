@@ -4,6 +4,7 @@ import { documentStats } from "@vellum/core";
 import { markdownToDoc, vellumExtensions } from "@vellum/editor";
 import { useEffect, useRef } from "react";
 import type * as Y from "yjs";
+import { indexDocument } from "../data/search.js";
 import { useApp } from "../state/app.js";
 import { useDocSession } from "../state/session.js";
 import type { HeadingEntry } from "../state/session.js";
@@ -51,8 +52,11 @@ export function DocumentEditor({ docId, ydoc, initialMarkdown, primary = true }:
       editor.commands.setContent(markdownToDoc(editor.schema, initialMarkdown).toJSON());
     }
     const session = useDocSession.getState();
+    let lastText = "";
     const measure = () => {
-      const stats = documentStats(editor.state.doc.textBetween(0, editor.state.doc.content.size, "\n", " "));
+      const text = editor.state.doc.textBetween(0, editor.state.doc.content.size, "\n", " ");
+      const stats = documentStats(text);
+      lastText = text;
       if (primary) session.update({ stats, wordCount: stats.words, headings: collectHeadings(editor) });
       return stats;
     };
@@ -70,6 +74,8 @@ export function DocumentEditor({ docId, ydoc, initialMarkdown, primary = true }:
         clearTimeout(metaTimer.current);
         metaTimer.current = setTimeout(() => {
           void updateDocument(docId, { wordCount: words, updatedAt: new Date().toISOString() });
+          const title = useApp.getState().documents.find((d) => d.id === docId)?.title ?? "";
+          void indexDocument(docId, title, lastText);
         }, 600);
       }, 200);
     };

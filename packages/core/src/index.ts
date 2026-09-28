@@ -7,3 +7,4 @@ export * as sync from "./sync/index.js";
 export * from "./stats.js";
 export * from "./library.js";
 export * from "./fuzzy.js";
+export * from "./search.js";

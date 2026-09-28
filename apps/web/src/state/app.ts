@@ -2,6 +2,7 @@ import { createId } from "@vellum/core";
 import type { Collection, DocumentMeta, User, Workspace } from "@vellum/core";
 import { create } from "zustand";
 import { IndexedDbRepository } from "../data/idb.js";
+import { backfill, removeFromIndex, updateIndexedTitle } from "../data/search.js";
 import type { Repository } from "../data/repository.js";
 import { ensureSeeded, nextCollectionColour } from "../data/seed.js";
 
@@ -24,6 +25,10 @@ export interface AppState {
   updateDocuments(ids: string[], patch: Partial<DocumentMeta>): Promise<void>;
   deleteDocuments(ids: string[]): Promise<void>;
   createCollection(name: string): Promise<Collection>;
+  updateCollection(id: string, patch: Partial<Pick<Collection, "name" | "color">>): Promise<void>;
+  /** Delete a collection; its documents become unfiled. */
+  deleteCollection(id: string): Promise<void>;
+  reorderCollections(orderedIds: string[]): Promise<void>;
   switchWorkspace(id: string): Promise<void>;
 }
 
@@ -35,6 +40,8 @@ export const useApp = create<AppState>((set, get) => {
     set({ user, workspace, welcomeDocId: (await get().repo.getSetting<string>("welcomeDocId")) ?? null });
     await get().refresh();
     set({ ready: true });
+    // Index anything that isn't searchable yet, off the critical path.
+    setTimeout(() => void backfill(get().documents), 500);
   }
 
   return {
@@ -98,6 +105,8 @@ export const useApp = create<AppState>((set, get) => {
       if (!existing) return;
       const next = { ...existing, ...patch, id };
       await repo.putDocument(next);
+      if (patch.title !== undefined && patch.title !== existing.title)
+        void updateIndexedTitle(id, patch.title);
       set({
         documents: [next, ...get().documents.filter((d) => d.id !== id)].sort((a, b) =>
           b.updatedAt.localeCompare(a.updatedAt),
@@ -112,7 +121,10 @@ export const useApp = create<AppState>((set, get) => {
 
     async deleteDocuments(ids) {
       const { repo } = get();
-      for (const id of ids) await repo.deleteDocument(id);
+      for (const id of ids) {
+        await repo.deleteDocument(id);
+        void removeFromIndex(id);
+      }
       set({ documents: get().documents.filter((d) => !ids.includes(d.id)) });
     },
 
@@ -129,6 +141,35 @@ export const useApp = create<AppState>((set, get) => {
       await repo.putCollection(collection);
       set({ collections: [...collections, collection] });
       return collection;
+    },
+
+    async updateCollection(id, patch) {
+      const { repo, collections } = get();
+      const existing = collections.find((c) => c.id === id);
+      if (!existing) return;
+      const next = { ...existing, ...patch };
+      await repo.putCollection(next);
+      set({ collections: collections.map((c) => (c.id === id ? next : c)) });
+    },
+
+    async deleteCollection(id) {
+      const { repo, documents } = get();
+      const affected = documents.filter((d) => d.collectionId === id).map((d) => d.id);
+      await get().updateDocuments(affected, { collectionId: null });
+      await repo.deleteCollection(id);
+      set({ collections: get().collections.filter((c) => c.id !== id) });
+    },
+
+    async reorderCollections(orderedIds) {
+      const { repo, collections } = get();
+      const next = orderedIds
+        .map((id, i) => {
+          const c = collections.find((x) => x.id === id);
+          return c ? { ...c, sortOrder: i } : null;
+        })
+        .filter((c): c is Collection => c !== null);
+      set({ collections: next });
+      for (const c of next) await repo.putCollection(c);
     },
 
     async switchWorkspace(id) {
