@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { App } from "../src/App.js";
 import { IndexedDbRepository } from "../src/data/idb.js";
@@ -12,6 +12,12 @@ beforeEach(() => {
 describe("editor screen", () => {
   it("seeds a workspace and opens the welcome draft", async () => {
     render(<App />);
+    await waitFor(() => expect(window.location.pathname).toBe("/library"));
+    await act(async () =>
+      (
+        await within(await screen.findByRole("table")).findByRole("link", { name: "Welcome to Vellum" })
+      ).click(),
+    );
     expect(await screen.findByDisplayValue("Welcome to Vellum")).toBeTruthy();
     await waitFor(() => expect(window.location.pathname).toMatch(/^\/d\/doc_/));
     expect(screen.getByRole("navigation", { name: "Breadcrumb" }).textContent).toContain("Essays");
@@ -24,9 +30,13 @@ describe("editor screen", () => {
 
   it("creates a new draft from the sidebar", async () => {
     render(<App />);
-    await screen.findByDisplayValue("Welcome to Vellum");
+    await waitFor(() => expect(window.location.pathname).toBe("/library"));
     const before = window.location.pathname;
-    await act(async () => screen.getByRole("button", { name: /New draft/ }).click());
+    await act(async () =>
+      within(screen.getByRole("navigation", { name: "Workspace" }))
+        .getByRole("button", { name: /New draft/ })
+        .click(),
+    );
     await waitFor(() => expect(window.location.pathname).not.toBe(before));
     expect(await screen.findByPlaceholderText("Untitled")).toBeTruthy();
     expect(screen.getAllByText("Untitled").length).toBeGreaterThan(0);

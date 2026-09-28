@@ -5,3 +5,4 @@ export * from "./format.js";
 export { DOCUMENT_FORMAT_VERSION as VELLUM_FORMAT_VERSION } from "./format.js";
 export * as sync from "./sync/index.js";
 export * from "./stats.js";
+export * from "./library.js";

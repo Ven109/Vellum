@@ -17,8 +17,12 @@ export interface AppState {
 
   init(repo?: Repository): Promise<void>;
   refresh(): Promise<void>;
-  createDocument(input?: Partial<Pick<DocumentMeta, "title" | "collectionId">>): Promise<DocumentMeta>;
+  createDocument(
+    input?: Partial<Pick<DocumentMeta, "title" | "collectionId" | "isTemplate">>,
+  ): Promise<DocumentMeta>;
   updateDocument(id: string, patch: Partial<DocumentMeta>): Promise<void>;
+  updateDocuments(ids: string[], patch: Partial<DocumentMeta>): Promise<void>;
+  deleteDocuments(ids: string[]): Promise<void>;
   createCollection(name: string): Promise<Collection>;
   switchWorkspace(id: string): Promise<void>;
 }
@@ -77,7 +81,7 @@ export const useApp = create<AppState>((set, get) => {
         title: input.title ?? "",
         status: "draft",
         ownerId: user.id,
-        isTemplate: false,
+        isTemplate: input.isTemplate ?? false,
         tags: [],
         wordCount: 0,
         createdAt: now,
@@ -99,6 +103,17 @@ export const useApp = create<AppState>((set, get) => {
           b.updatedAt.localeCompare(a.updatedAt),
         ),
       });
+    },
+
+    async updateDocuments(ids, patch) {
+      const now = new Date().toISOString();
+      for (const id of ids) await get().updateDocument(id, { ...patch, updatedAt: now });
+    },
+
+    async deleteDocuments(ids) {
+      const { repo } = get();
+      for (const id of ids) await repo.deleteDocument(id);
+      set({ documents: get().documents.filter((d) => !ids.includes(d.id)) });
     },
 
     async createCollection(name) {
