@@ -42,3 +42,22 @@ describe("editor screen", () => {
     expect(screen.getAllByText("Untitled").length).toBeGreaterThan(0);
   });
 });
+
+describe("document updates", () => {
+  it("compose concurrent patches instead of losing one", async () => {
+    await useApp.getState().init();
+    const doc = await useApp.getState().createDocument();
+    await Promise.all([
+      useApp.getState().updateDocument(doc.id, { title: "Kept title" }),
+      useApp.getState().updateDocument(doc.id, { wordCount: 42 }),
+    ]);
+    expect(useApp.getState().documents.find((d) => d.id === doc.id)).toMatchObject({
+      title: "Kept title",
+      wordCount: 42,
+    });
+    expect(await useApp.getState().repo.getDocument(doc.id)).toMatchObject({
+      title: "Kept title",
+      wordCount: 42,
+    });
+  });
+});

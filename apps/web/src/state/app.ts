@@ -33,6 +33,7 @@ export interface AppState {
 }
 
 const initialising = new WeakMap<Repository, Promise<void>>();
+const writes = new Map<string, Promise<void>>();
 
 export const useApp = create<AppState>((set, get) => {
   async function doInit() {
@@ -103,15 +104,28 @@ export const useApp = create<AppState>((set, get) => {
       const { repo, documents } = get();
       const existing = documents.find((d) => d.id === id) ?? (await repo.getDocument(id));
       if (!existing) return;
-      const next = { ...existing, ...patch, id };
-      await repo.putDocument(next);
-      if (patch.title !== undefined && patch.title !== existing.title)
-        void updateIndexedTitle(id, patch.title);
+      // Apply to in-memory state synchronously so concurrent patches (title, word count...) compose
+      // instead of overwriting each other with stale copies.
+      const current = get().documents.find((d) => d.id === id) ?? existing;
+      const next = { ...current, ...patch, id };
       set({
         documents: [next, ...get().documents.filter((d) => d.id !== id)].sort((a, b) =>
           b.updatedAt.localeCompare(a.updatedAt),
         ),
       });
+      if (patch.title !== undefined && patch.title !== current.title)
+        void updateIndexedTitle(id, patch.title);
+      // Persist the latest merged state, one write at a time per document.
+      const prev = writes.get(id) ?? Promise.resolve();
+      const write = prev.then(async () => {
+        const latest = get().documents.find((d) => d.id === id);
+        if (latest) await repo.putDocument(latest);
+      });
+      writes.set(
+        id,
+        write.catch(() => undefined),
+      );
+      await write;
     },
 
     async updateDocuments(ids, patch) {
