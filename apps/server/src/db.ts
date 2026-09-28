@@ -14,6 +14,65 @@ const MIGRATIONS: string[] = [
      created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
    );
    CREATE INDEX doc_updates_doc ON doc_updates(doc_id, seq);`,
+  // 2: accounts, sessions, workspaces, invites, instance settings, document registry
+  `CREATE TABLE users (
+     id TEXT PRIMARY KEY,
+     email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+     name TEXT NOT NULL,
+     password_hash TEXT,
+     is_admin INTEGER NOT NULL DEFAULT 0,
+     avatar_color TEXT,
+     created_at TEXT NOT NULL
+   );
+   CREATE TABLE sessions (
+     token_hash TEXT PRIMARY KEY,
+     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+     created_at TEXT NOT NULL,
+     expires_at TEXT NOT NULL
+   );
+   CREATE INDEX sessions_user ON sessions(user_id);
+   CREATE TABLE oauth_accounts (
+     provider TEXT NOT NULL,
+     provider_user_id TEXT NOT NULL,
+     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+     PRIMARY KEY (provider, provider_user_id)
+   );
+   CREATE TABLE password_resets (
+     token_hash TEXT PRIMARY KEY,
+     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+     expires_at TEXT NOT NULL,
+     used INTEGER NOT NULL DEFAULT 0
+   );
+   CREATE TABLE workspaces (
+     id TEXT PRIMARY KEY,
+     name TEXT NOT NULL,
+     created_by TEXT NOT NULL REFERENCES users(id),
+     created_at TEXT NOT NULL
+   );
+   CREATE TABLE members (
+     workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+     role TEXT NOT NULL CHECK (role IN ('owner','admin','member','guest')),
+     joined_at TEXT NOT NULL,
+     PRIMARY KEY (workspace_id, user_id)
+   );
+   CREATE TABLE invites (
+     token_hash TEXT PRIMARY KEY,
+     workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+     email TEXT NOT NULL COLLATE NOCASE,
+     role TEXT NOT NULL,
+     invited_by TEXT NOT NULL REFERENCES users(id),
+     created_at TEXT NOT NULL,
+     expires_at TEXT NOT NULL,
+     accepted_at TEXT
+   );
+   CREATE TABLE instance_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+   CREATE TABLE documents (
+     id TEXT PRIMARY KEY,
+     workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+     created_by TEXT NOT NULL REFERENCES users(id),
+     created_at TEXT NOT NULL
+   );`,
 ];
 
 export type Db = DatabaseSync;

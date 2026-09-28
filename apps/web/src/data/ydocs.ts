@@ -1,6 +1,6 @@
 import * as Y from "yjs";
 import { LocalDocPersistence } from "./local-persistence.js";
-import { detectServer, syncUrl } from "./server.js";
+import { detectServer, syncUrl, syncWorkspaceFor } from "./server.js";
 import { DocSyncProvider } from "./sync-provider.js";
 
 export type SaveState = "saved" | "saving" | "offline" | "error";
@@ -26,8 +26,9 @@ export class LiveDoc {
     this.local = new LocalDocPersistence(id, this.doc);
     this.local.onChange(() => this.emit());
     this.whenLoaded = this.local.whenLoaded.then(async () => {
-      if (await detectServer()) {
-        this.remote = new DocSyncProvider(id, this.doc, syncUrl(id), {
+      const workspaceId = syncWorkspaceFor(id);
+      if (workspaceId && (await detectServer())) {
+        this.remote = new DocSyncProvider(id, this.doc, syncUrl(id, workspaceId), {
           change: () => this.emit(),
           merged: () => this.mergedListeners.forEach((l) => l()),
         });

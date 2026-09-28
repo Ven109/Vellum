@@ -1981,3 +1981,195 @@ del.vl-sug-del,
   color: var(--accent-ink);
   font-size: 11px;
 }
+
+/* Sign-in, setup and invites */
+.vl-auth {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 32px 16px;
+  background: var(--panel);
+}
+
+.vl-auth-card {
+  width: min(420px, 100%);
+  padding: 32px 28px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper);
+  box-shadow: var(--shadow);
+}
+
+.vl-auth-card h1 {
+  margin: 0 0 8px;
+  font-family: var(--serif);
+  font-size: 28px;
+}
+
+.vl-auth-brand {
+  margin: 0 0 20px;
+  color: var(--accent);
+  font-family: var(--serif);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.vl-auth-form {
+  display: grid;
+  gap: 14px;
+}
+
+.vl-auth-field {
+  display: grid;
+  gap: 6px;
+  color: var(--ink-2);
+  font-weight: 500;
+}
+
+.vl-auth-field .vl-input {
+  font-weight: 400;
+}
+
+.vl-auth-check {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--ink-2);
+}
+
+.vl-small-text {
+  margin: -6px 0 0;
+  font-size: 12px;
+}
+
+.vl-auth-error {
+  margin: 0;
+  color: var(--danger);
+}
+
+.vl-auth-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  justify-content: space-between;
+  margin: 18px 0 0;
+  font-size: 13px;
+}
+
+.vl-auth-links a {
+  color: var(--accent);
+}
+
+.vl-auth-oauth {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.vl-auth-oauth .vl-btn {
+  justify-content: center;
+  text-decoration: none;
+}
+
+.vl-auth-or {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.vl-auth-or::before,
+.vl-auth-or::after {
+  flex: 1;
+  border-top: 1px solid var(--line);
+  content: "";
+}
+
+.vl-inline-link {
+  display: inline;
+  font-size: inherit;
+}
+
+/* Workspace and people */
+.vl-inline-form,
+.vl-invite-form,
+.vl-invite-link {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.vl-inline-form .vl-input,
+.vl-invite-form .vl-input[type="email"],
+.vl-invite-link .vl-input {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.vl-invite-result {
+  margin-bottom: 14px;
+  padding: 12px;
+  border-radius: var(--radius);
+  background: var(--panel);
+}
+
+.vl-invite-result p {
+  margin: 0 0 8px;
+}
+
+.vl-members {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vl-members li {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+
+.vl-member-name {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.vl-member-name small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vl-subhead {
+  margin: 16px 0 6px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Import */
+.vl-import-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.vl-import-list {
+  max-height: 240px;
+  margin: 0;
+  padding-left: 18px;
+  overflow: auto;
+}
+
+.vl-import-skipped {
+  margin-top: 8px;
+  color: var(--ink-2);
+  font-size: 13px;
+}
