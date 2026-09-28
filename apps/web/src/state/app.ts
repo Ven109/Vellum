@@ -15,6 +15,8 @@ export interface AppState {
   collections: Collection[];
   documents: DocumentMeta[];
   welcomeDocId: string | null;
+  /** Other people in this workspace (filled in once accounts exist). */
+  members: Array<{ id: string; name: string }>;
 
   init(repo?: Repository): Promise<void>;
   refresh(): Promise<void>;
@@ -55,6 +57,7 @@ export const useApp = create<AppState>((set, get) => {
     collections: [],
     documents: [],
     welcomeDocId: null,
+    members: [],
 
     init(repo) {
       // Idempotent: React StrictMode and multiple mounts must not seed twice.

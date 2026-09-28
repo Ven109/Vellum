@@ -6,6 +6,7 @@ import { useEffect, useRef } from "react";
 import type * as Y from "yjs";
 import { indexDocument } from "../data/search.js";
 import { useApp } from "../state/app.js";
+import { useCommentsBinding } from "../state/comments.js";
 import { useDocSession } from "../state/session.js";
 import type { HeadingEntry } from "../state/session.js";
 import { SelectionToolbar } from "./SelectionToolbar.js";
@@ -87,6 +88,8 @@ export function DocumentEditor({ docId, ydoc, initialMarkdown, primary = true }:
       if (primary) session.close(docId);
     };
   }, [editor, docId, initialMarkdown, updateDocument, primary]);
+
+  useCommentsBinding(editor, ydoc, primary);
 
   return (
     <>

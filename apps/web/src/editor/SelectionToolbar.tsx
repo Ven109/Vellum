@@ -1,6 +1,17 @@
 import type { Editor } from "@tiptap/core";
 import { BubbleMenu } from "@tiptap/react/menus";
-import { Bold, Code, Heading2, Italic, Link2, Quote, Sparkles, Strikethrough } from "lucide-react";
+import {
+  Bold,
+  Code,
+  Heading2,
+  Italic,
+  Link2,
+  MessageSquarePlus,
+  Quote,
+  Sparkles,
+  Strikethrough,
+} from "lucide-react";
+import { useComments } from "../state/comments.js";
 import { useAssistant } from "../state/assistant.js";
 import type { ReactNode } from "react";
 
@@ -74,6 +85,15 @@ export const FORMAT_ACTIONS: ToolbarAction[] = [
 
 /** Extra actions (comment, ...) registered by other features. */
 export const extraSelectionActions: ToolbarAction[] = [
+  {
+    id: "comment",
+    label: "Comment",
+    icon: <MessageSquarePlus size={16} />,
+    run: (editor) => {
+      const { from, to } = editor.state.selection;
+      if (from < to) useComments.getState().startComposing({ from, to });
+    },
+  },
   {
     id: "ask",
     label: "Ask the assistant",

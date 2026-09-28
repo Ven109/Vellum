@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useDocSession } from "../state/session.js";
+import { CommentsSection } from "./Comments.js";
 
 /**
  * Tracks which outline section is at the top of the viewport. Uses one scroll listener throttled to
@@ -77,6 +78,7 @@ export function RightRail() {
           <strong>{added.toLocaleString()}</strong> words added
         </p>
       </section>
+      <CommentsSection />
       <section>
         <h2 className="vl-rail-heading">Suggestions</h2>
         <p className="vl-muted">No pending suggestions.</p>

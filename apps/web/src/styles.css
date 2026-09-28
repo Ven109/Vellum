@@ -1710,3 +1710,176 @@ button.vl-wordcount:hover {
   gap: 6px;
   margin: 8px 0;
 }
+
+/* Comments */
+.vl-comment-composer {
+  z-index: 50;
+  width: 300px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+  box-shadow: var(--shadow);
+}
+
+.vl-comment-composer textarea {
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+  resize: vertical;
+}
+
+.vl-threads {
+  display: grid;
+  gap: 8px;
+}
+
+.vl-thread-card {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+  cursor: pointer;
+}
+
+.vl-thread-card[data-active] {
+  border-color: #e0b100;
+  box-shadow: 0 0 0 1px #e0b100;
+}
+
+.vl-thread-card[data-status="resolved"] {
+  opacity: 0.7;
+}
+
+.vl-thread-quote {
+  margin: 0 0 8px;
+  padding-left: 8px;
+  border-left: 3px solid #e0b100;
+  color: var(--muted);
+  font-family: var(--serif);
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vl-comment + .vl-comment {
+  margin-top: 8px;
+}
+
+.vl-comment-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.vl-comment p {
+  margin: 2px 0 0;
+  white-space: pre-wrap;
+}
+
+.vl-mention {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-radius: 3px;
+}
+
+.vl-thread-actions {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  cursor: default;
+}
+
+.vl-reply {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vl-reply .vl-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.vl-rail-subheading {
+  margin: 12px 0 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.vl-small-text {
+  font-size: 12px;
+}
+
+.vl-ws-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.vl-ws-row .vl-ws-btn {
+  flex: 1;
+  min-width: 0;
+}
+
+.vl-inbox {
+  position: relative;
+}
+
+.vl-badge {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 10px;
+  line-height: 16px;
+  text-align: center;
+}
+
+.vl-inbox-menu {
+  left: 0;
+  right: auto;
+  width: 300px;
+}
+
+.vl-inbox-head {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 8px;
+}
+
+.vl-inbox-menu ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vl-inbox-menu li button {
+  display: block;
+  line-height: 1.4;
+}
+
+.vl-inbox-menu li button[data-unread] {
+  background: var(--accent-soft);
+}
+
+.vl-inbox-excerpt {
+  display: block;
+  color: var(--ink-2);
+  font-size: 12px;
+}
+
+.vl-inbox-menu p {
+  padding: 8px;
+  margin: 0;
+}
