@@ -55,3 +55,6 @@ export const useDocSession = create<DocSessionState>((set, get) => ({
     set(patch);
   },
 }));
+
+if (import.meta.env.DEV && typeof window !== "undefined")
+  (window as unknown as { __vellumSession: typeof useDocSession }).__vellumSession = useDocSession;

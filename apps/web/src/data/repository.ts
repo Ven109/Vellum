@@ -1,4 +1,4 @@
-import type { Collection, DocumentMeta, User, Workspace } from "@vellum/core";
+import type { Collection, DocumentMeta, User, Version, Workspace } from "@vellum/core";
 
 /**
  * Persistence boundary for workspace metadata. The document bodies themselves live in Yjs docs (see
@@ -21,6 +21,10 @@ export interface Repository {
   getDocument(id: string): Promise<DocumentMeta | undefined>;
   putDocument(doc: DocumentMeta): Promise<void>;
   deleteDocument(id: string): Promise<void>;
+
+  putVersion(version: Version): Promise<void>;
+  listVersions(documentId: string): Promise<Version[]>;
+  deleteVersion(id: string): Promise<void>;
 
   getSetting<T>(key: string): Promise<T | undefined>;
   putSetting<T>(key: string, value: T): Promise<void>;

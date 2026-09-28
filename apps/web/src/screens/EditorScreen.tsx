@@ -4,6 +4,7 @@ import type { LiveDoc } from "../data/ydocs.js";
 import { WELCOME_MARKDOWN } from "../data/seed.js";
 import { DocumentEditor } from "../editor/DocumentEditor.js";
 import { AssistantPanel } from "../components/AssistantPanel.js";
+import { ProposalCard } from "../components/ProposalCard.js";
 import { RightRail } from "../components/RightRail.js";
 import { useAssistant } from "../state/assistant.js";
 import { TopBar } from "../components/TopBar.js";
@@ -195,6 +196,7 @@ export function EditorScreen({ docId, splitId }: { docId: string; splitId?: stri
         </div>
       </main>
       {assistantOpen ? <AssistantPanel /> : <RightRail />}
+      <ProposalCard />
     </>
   );
 }

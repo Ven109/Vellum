@@ -1584,3 +1584,55 @@ button.vl-wordcount:hover {
   justify-content: flex-end;
   margin-top: 6px;
 }
+
+/* Rewrite proposals */
+.vl-proposal-range {
+  border-radius: 2px;
+}
+
+.vl-proposal-del {
+  background: var(--delete);
+  color: var(--delete-ink);
+  text-decoration: line-through;
+}
+
+.vl-proposal-ins {
+  background: var(--insert);
+  color: var(--insert-ink);
+}
+
+.vl-proposal-ins.vl-streaming::after {
+  content: "▍";
+  animation: vl-blink 1s steps(1) infinite;
+}
+
+@keyframes vl-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.vl-proposal-card {
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+  box-shadow: var(--shadow);
+  font-size: 13px;
+}
+
+.vl-proposal-label {
+  font-weight: 600;
+}
+
+.vl-plus {
+  color: var(--ok);
+}
+
+.vl-minus {
+  color: var(--danger);
+}

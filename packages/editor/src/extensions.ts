@@ -4,6 +4,7 @@ import { Placeholder } from "@tiptap/extensions";
 import StarterKit from "@tiptap/starter-kit";
 import { Annotations } from "./annotations.js";
 import { MarkdownPaste } from "./paste.js";
+import { RewriteProposal } from "./proposal.js";
 
 export interface VellumExtensionOptions {
   placeholder?: string;
@@ -33,6 +34,7 @@ export function vellumExtensions(options: VellumExtensionOptions = {}): AnyExten
     Placeholder.configure({ placeholder: options.placeholder ?? "Start writing…" }),
     Annotations,
     MarkdownPaste,
+    RewriteProposal,
     ...(options.extra ?? []),
   ];
 }
