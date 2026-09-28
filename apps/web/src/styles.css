@@ -118,7 +118,9 @@ button {
 .vl-app {
   display: grid;
   grid-template-columns: 248px minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr);
   height: 100%;
+  overflow: hidden;
 }
 
 .vl-main {
@@ -136,6 +138,7 @@ button {
 
 .vl-scroll {
   flex: 1;
+  min-height: 0;
   overflow: auto;
 }
 
@@ -702,4 +705,58 @@ button {
 
 .vl-notice span {
   flex: 1;
+}
+
+.vl-stats-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+button.vl-wordcount {
+  border: 0;
+  background: transparent;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+button.vl-wordcount:hover {
+  background: var(--panel);
+  color: var(--ink);
+}
+
+.vl-readtime {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.vl-popover {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 240px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+  box-shadow: var(--shadow);
+}
+
+.vl-popover dl {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 16px;
+  margin: 0;
+}
+
+.vl-popover dt {
+  color: var(--muted);
+}
+
+.vl-popover dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
