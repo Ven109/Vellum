@@ -11,6 +11,8 @@ import { ReviewPanel, useReview } from "../components/ReviewPanel.js";
 import { RightRail } from "../components/RightRail.js";
 import { useAssistant } from "../state/assistant.js";
 import { TopBar } from "../components/TopBar.js";
+import { FocusHud } from "../components/FocusHud.js";
+import { useFocus } from "../state/focus.js";
 import { X } from "lucide-react";
 import { displayTitle } from "../components/Sidebar.js";
 import { useApp } from "../state/app.js";
@@ -153,6 +155,10 @@ export function EditorScreen({ docId, splitId }: { docId: string; splitId?: stri
   const splitMeta = useApp((s) => (splitId ? s.documents.find((d) => d.id === splitId) : undefined));
   const assistantOpen = useAssistant((s) => s.open);
   const reviewOpen = useReview((s) => s.open);
+  const focus = useFocus((s) => s.active);
+  const dimming = useFocus((s) => s.dimming);
+  // Leaving the document leaves focus mode.
+  useEffect(() => () => useFocus.getState().exit(), [docId]);
 
   if (!meta) {
     return (
@@ -164,8 +170,8 @@ export function EditorScreen({ docId, splitId }: { docId: string; splitId?: stri
 
   if (splitId && splitMeta && splitId !== docId) {
     return (
-      <main className="vl-main">
-        <TopBar doc={meta} />
+      <main className="vl-main" data-focus={focus || undefined} data-dimming={focus ? dimming : undefined}>
+        {!focus && <TopBar doc={meta} />}
         <div className="vl-split">
           <section className="vl-scroll" aria-label="Primary document">
             <DocumentPane docId={docId} primary />
@@ -187,20 +193,22 @@ export function EditorScreen({ docId, splitId }: { docId: string; splitId?: stri
             <DocumentPane docId={splitId} primary={false} />
           </section>
         </div>
+        {focus && <FocusHud />}
       </main>
     );
   }
 
   return (
     <>
-      <main className="vl-main">
-        <TopBar doc={meta} />
+      <main className="vl-main" data-focus={focus || undefined} data-dimming={focus ? dimming : undefined}>
+        {!focus && <TopBar doc={meta} />}
         <div className="vl-scroll">
           <DocumentPane docId={docId} primary />
         </div>
+        {focus && <FocusHud />}
       </main>
       <ErrorBoundary label="the side panel">
-        {assistantOpen ? <AssistantPanel /> : reviewOpen ? <ReviewPanel /> : <RightRail />}
+        {assistantOpen ? <AssistantPanel /> : focus ? null : reviewOpen ? <ReviewPanel /> : <RightRail />}
       </ErrorBoundary>
       <ProposalCard />
       <CommentComposer />

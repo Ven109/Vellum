@@ -18,6 +18,7 @@ import {
 import { WorkspaceSettingsPage } from "./screens/WorkspaceSettings.js";
 import { useApp } from "./state/app.js";
 import { useAuth } from "./state/auth.js";
+import { useFocus } from "./state/focus.js";
 import { navigate, useRoute } from "./state/router.js";
 
 const AUTH_PATHS = ["/setup", "/sign-in", "/sign-up", "/forgot-password", "/reset-password"];
@@ -58,6 +59,7 @@ function Loading() {
 function Workspace({ leaveAuthPath }: { leaveAuthPath: boolean }) {
   const ready = useApp((s) => s.ready);
   const init = useApp((s) => s.init);
+  const focus = useFocus((s) => s.active);
   const route = useRoute();
 
   useEffect(() => {
@@ -80,7 +82,7 @@ function Workspace({ leaveAuthPath }: { leaveAuthPath: boolean }) {
   if (!ready) return <Loading />;
 
   return (
-    <div className="vl-app">
+    <div className="vl-app" data-focus={(focus && route.name === "doc") || undefined}>
       <CoreCommands />
       <Sidebar />
       <Screen />

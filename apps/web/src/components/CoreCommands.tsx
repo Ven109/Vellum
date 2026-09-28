@@ -1,7 +1,9 @@
-import { Columns2, FilePlus2, FolderPlus, Library, Link2, SunMoon } from "lucide-react";
+import { Columns2, FilePlus2, FolderPlus, Library, Link2, Maximize2, SunMoon } from "lucide-react";
 import { useEffect } from "react";
 import { useApp } from "../state/app.js";
 import { useAssistant } from "../state/assistant.js";
+import { useFocus } from "../state/focus.js";
+import { useDocSession } from "../state/session.js";
 import { MOD_KEY, useCommands } from "../state/commands.js";
 import { docPath, navigate, parseRoute } from "../state/router.js";
 
@@ -15,6 +17,12 @@ export function applyTheme(theme: (typeof THEMES)[number]) {
   } catch {
     /* ignore */
   }
+}
+
+/** Toggle focus mode and keep the cursor in the document. */
+export function toggleFocus() {
+  useFocus.getState().toggle();
+  requestAnimationFrame(() => useDocSession.getState().editor?.view.focus());
 }
 
 function currentRoute() {
@@ -76,6 +84,16 @@ export function CoreCommands() {
         run: () => navigator.clipboard?.writeText(window.location.origin + window.location.pathname),
       },
       {
+        id: "view.focus",
+        title: "Toggle focus mode",
+        section: "View",
+        keywords: ["distraction free", "zen", "full screen", "writing"],
+        shortcut: `${MOD_KEY}⇧F`,
+        icon: <Maximize2 size={15} />,
+        when: () => currentRoute().name === "doc",
+        run: () => toggleFocus(),
+      },
+      {
         id: "view.closeSplit",
         title: "Close split view",
         section: "View",
@@ -103,6 +121,12 @@ export function CoreCommands() {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "j") {
         e.preventDefault();
         useAssistant.getState().toggle();
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "f") {
+        if (currentRoute().name !== "doc") return;
+        e.preventDefault();
+        toggleFocus();
         return;
       }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
