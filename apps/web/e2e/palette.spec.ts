@@ -1,9 +1,9 @@
 import { expect, test } from "@playwright/test";
+import { newDraft } from "./fixtures.js";
 
 test("command palette opens documents, splits, and creates drafts", async ({ page }) => {
   await page.goto("/library");
-  const sidebar = page.getByRole("navigation", { name: "Workspace" });
-  await sidebar.getByRole("button", { name: "New draft" }).click();
+  await newDraft(page);
   await page.getByRole("textbox", { name: "Title" }).fill("Research notes");
   await expect(page.getByRole("status").filter({ hasText: /Saved/ })).toBeVisible();
 

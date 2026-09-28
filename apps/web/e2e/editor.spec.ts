@@ -1,15 +1,17 @@
 import { expect, test } from "@playwright/test";
+import { newDraft } from "./fixtures.js";
 
 test("write in a new draft and keep it after reload", async ({ page }) => {
+  page.on("console", (m) => {
+    if (m.type() === "error" || m.type() === "warning") console.log(`[browser ${m.type()}] ${m.text()}`);
+  });
+  page.on("pageerror", (e) => console.log(`[pageerror] ${e.message}`));
   await page.goto("/");
   await expect(page).toHaveURL(/\/library$/);
   await page.getByRole("main").getByRole("link", { name: "Welcome to Vellum" }).click();
   await expect(page.getByRole("textbox", { name: "Title" })).toHaveValue("Welcome to Vellum");
 
-  await page
-    .getByRole("navigation", { name: "Workspace" })
-    .getByRole("button", { name: "New draft" })
-    .click();
+  await newDraft(page);
   await page.getByRole("textbox", { name: "Title" }).fill("On workshops");
   await page.getByRole("textbox", { name: "Title" }).press("Enter");
   await page.keyboard.type("## The quiet tool");
@@ -28,7 +30,7 @@ test("write in a new draft and keep it after reload", async ({ page }) => {
   await page.getByRole("toolbar", { name: "Formatting" }).getByRole("button", { name: "Bold" }).click();
   await expect(page.locator(".vl-prose strong")).toHaveText("nobody");
 
-  await page.waitForTimeout(1000);
+  await expect(page.getByRole("status").filter({ hasText: /Saved|Saving|Offline/ })).toHaveText("Saved");
   await page.reload();
   await expect(page.getByRole("textbox", { name: "Title" })).toHaveValue("On workshops");
   await expect(page.locator(".vl-prose strong")).toHaveText("nobody");

@@ -2,6 +2,7 @@ import { createId } from "@vellum/core";
 import type { Collection, DocumentMeta, User, Workspace } from "@vellum/core";
 import { create } from "zustand";
 import { IndexedDbRepository } from "../data/idb.js";
+import { backfill, removeFromIndex, updateIndexedTitle } from "../data/search.js";
 import type { Repository } from "../data/repository.js";
 import { ensureSeeded, nextCollectionColour } from "../data/seed.js";
 
@@ -24,10 +25,15 @@ export interface AppState {
   updateDocuments(ids: string[], patch: Partial<DocumentMeta>): Promise<void>;
   deleteDocuments(ids: string[]): Promise<void>;
   createCollection(name: string): Promise<Collection>;
+  updateCollection(id: string, patch: Partial<Pick<Collection, "name" | "color">>): Promise<void>;
+  /** Delete a collection; its documents become unfiled. */
+  deleteCollection(id: string): Promise<void>;
+  reorderCollections(orderedIds: string[]): Promise<void>;
   switchWorkspace(id: string): Promise<void>;
 }
 
 const initialising = new WeakMap<Repository, Promise<void>>();
+const writes = new Map<string, Promise<void>>();
 
 export const useApp = create<AppState>((set, get) => {
   async function doInit() {
@@ -35,6 +41,8 @@ export const useApp = create<AppState>((set, get) => {
     set({ user, workspace, welcomeDocId: (await get().repo.getSetting<string>("welcomeDocId")) ?? null });
     await get().refresh();
     set({ ready: true });
+    // Index anything that isn't searchable yet, off the critical path.
+    setTimeout(() => void backfill(get().documents), 500);
   }
 
   return {
@@ -87,8 +95,13 @@ export const useApp = create<AppState>((set, get) => {
         createdAt: now,
         updatedAt: now,
       };
-      await repo.putDocument(doc);
+      // Show and open the new draft immediately; the write is queued so later edits land after it.
       set({ documents: [doc, ...get().documents] });
+      const write = repo.putDocument(doc);
+      writes.set(
+        doc.id,
+        write.catch(() => undefined),
+      );
       return doc;
     },
 
@@ -96,13 +109,28 @@ export const useApp = create<AppState>((set, get) => {
       const { repo, documents } = get();
       const existing = documents.find((d) => d.id === id) ?? (await repo.getDocument(id));
       if (!existing) return;
-      const next = { ...existing, ...patch, id };
-      await repo.putDocument(next);
+      // Apply to in-memory state synchronously so concurrent patches (title, word count...) compose
+      // instead of overwriting each other with stale copies.
+      const current = get().documents.find((d) => d.id === id) ?? existing;
+      const next = { ...current, ...patch, id };
       set({
         documents: [next, ...get().documents.filter((d) => d.id !== id)].sort((a, b) =>
           b.updatedAt.localeCompare(a.updatedAt),
         ),
       });
+      if (patch.title !== undefined && patch.title !== current.title)
+        void updateIndexedTitle(id, patch.title);
+      // Persist the latest merged state, one write at a time per document.
+      const prev = writes.get(id) ?? Promise.resolve();
+      const write = prev.then(async () => {
+        const latest = get().documents.find((d) => d.id === id);
+        if (latest) await repo.putDocument(latest);
+      });
+      writes.set(
+        id,
+        write.catch(() => undefined),
+      );
+      await write;
     },
 
     async updateDocuments(ids, patch) {
@@ -112,7 +140,10 @@ export const useApp = create<AppState>((set, get) => {
 
     async deleteDocuments(ids) {
       const { repo } = get();
-      for (const id of ids) await repo.deleteDocument(id);
+      for (const id of ids) {
+        await repo.deleteDocument(id);
+        void removeFromIndex(id);
+      }
       set({ documents: get().documents.filter((d) => !ids.includes(d.id)) });
     },
 
@@ -129,6 +160,35 @@ export const useApp = create<AppState>((set, get) => {
       await repo.putCollection(collection);
       set({ collections: [...collections, collection] });
       return collection;
+    },
+
+    async updateCollection(id, patch) {
+      const { repo, collections } = get();
+      const existing = collections.find((c) => c.id === id);
+      if (!existing) return;
+      const next = { ...existing, ...patch };
+      await repo.putCollection(next);
+      set({ collections: collections.map((c) => (c.id === id ? next : c)) });
+    },
+
+    async deleteCollection(id) {
+      const { repo, documents } = get();
+      const affected = documents.filter((d) => d.collectionId === id).map((d) => d.id);
+      await get().updateDocuments(affected, { collectionId: null });
+      await repo.deleteCollection(id);
+      set({ collections: get().collections.filter((c) => c.id !== id) });
+    },
+
+    async reorderCollections(orderedIds) {
+      const { repo, collections } = get();
+      const next = orderedIds
+        .map((id, i) => {
+          const c = collections.find((x) => x.id === id);
+          return c ? { ...c, sortOrder: i } : null;
+        })
+        .filter((c): c is Collection => c !== null);
+      set({ collections: next });
+      for (const c of next) await repo.putCollection(c);
     },
 
     async switchWorkspace(id) {
