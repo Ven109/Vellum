@@ -96,6 +96,7 @@ function TitleField({ live, docId }: { live: LiveDoc; docId: string }) {
       ref={ref}
       className="vl-title"
       rows={1}
+      autoComplete="off"
       placeholder="Untitled"
       aria-label="Title"
       value={value}

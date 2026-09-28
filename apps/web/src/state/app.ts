@@ -196,3 +196,6 @@ export const useApp = create<AppState>((set, get) => {
     },
   };
 });
+
+if (import.meta.env.DEV && typeof window !== "undefined")
+  (window as unknown as { __vellumApp: typeof useApp }).__vellumApp = useApp;

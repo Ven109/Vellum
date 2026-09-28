@@ -34,6 +34,23 @@ test("write in a new draft and keep it after reload", async ({ page }) => {
 
   await expect(page.getByRole("status").filter({ hasText: /Saved|Saving|Offline/ })).toHaveText("Saved");
   await page.reload();
-  await expect(page.getByRole("textbox", { name: "Title" })).toHaveValue("On workshops");
+  await page.waitForTimeout(1500);
+  const diag = await page.evaluate(() => {
+    const w = window as unknown as {
+      __vellumLive?: Map<string, { doc: { getText(n: string): { toString(): string } }; saveState: string }>;
+      __vellumApp?: { getState(): { documents: Array<{ id: string; title: string }> } };
+    };
+    const id = location.pathname.split("/").pop();
+    const liveDoc = w.__vellumLive?.get(id!);
+    return JSON.stringify({
+      path: location.pathname,
+      yTitle: liveDoc?.doc.getText("title").toString(),
+      save: liveDoc?.saveState,
+      liveIds: [...(w.__vellumLive?.keys() ?? [])],
+      metaTitle: w.__vellumApp?.getState().documents.find((d) => d.id === id)?.title,
+      textarea: (document.querySelector(".vl-title") as HTMLTextAreaElement | null)?.value,
+    });
+  });
+  await expect(page.getByRole("textbox", { name: "Title" }), diag).toHaveValue("On workshops");
   await expect(page.locator(".vl-prose strong")).toHaveText("nobody");
 });
