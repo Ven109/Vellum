@@ -6,8 +6,8 @@ test("autosaves to the server, survives going offline, and syncs on reconnect", 
     .getByRole("navigation", { name: "Workspace" })
     .getByRole("button", { name: "New draft" })
     .click();
-  await page.getByLabel("Title").fill("Autosave");
-  await page.getByLabel("Title").press("Enter");
+  await page.getByRole("textbox", { name: "Title" }).fill("Autosave");
+  await page.getByRole("textbox", { name: "Title" }).press("Enter");
   await page.keyboard.type("First line typed online.");
   const status = page.getByRole("status").filter({ hasText: /Saved|Saving|Offline/ });
   await expect(status).toHaveText("Saved");
