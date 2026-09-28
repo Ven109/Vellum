@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { flushAll, hasUnsavedWork } from "./data/ydocs.js";
 import { Sidebar } from "./components/Sidebar.js";
 import { EditorScreen } from "./screens/EditorScreen.js";
 import { useApp } from "./state/app.js";
@@ -13,6 +14,15 @@ export function App() {
   useEffect(() => {
     void init();
   }, [init]);
+
+  useEffect(() => {
+    const beforeUnload = (e: BeforeUnloadEvent) => {
+      flushAll();
+      if (hasUnsavedWork()) e.preventDefault();
+    };
+    window.addEventListener("beforeunload", beforeUnload);
+    return () => window.removeEventListener("beforeunload", beforeUnload);
+  }, []);
 
   useEffect(() => {
     if (ready && route.name === "home" && documents[0]) navigate(docPath(documents[0].id), { replace: true });

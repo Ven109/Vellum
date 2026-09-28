@@ -686,3 +686,20 @@ button {
     display: none;
   }
 }
+
+.vl-notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 24px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
+.vl-notice span {
+  flex: 1;
+}

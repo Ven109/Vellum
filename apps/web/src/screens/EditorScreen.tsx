@@ -6,6 +6,7 @@ import { DocumentEditor } from "../editor/DocumentEditor.js";
 import { RightRail } from "../components/RightRail.js";
 import { TopBar } from "../components/TopBar.js";
 import { useApp } from "../state/app.js";
+import { useDocSession } from "../state/session.js";
 
 function useLiveDoc(id: string): LiveDoc | null {
   const [live, setLive] = useState<LiveDoc | null>(null);
@@ -19,7 +20,43 @@ function useLiveDoc(id: string): LiveDoc | null {
       releaseDoc(id);
     };
   }, [id]);
+  useEffect(() => {
+    if (!live) return;
+    const push = () => useDocSession.getState().update({ saveState: live.saveState });
+    push();
+    return live.onStatus(push);
+  }, [live]);
   return live;
+}
+
+function Notices({ live }: { live: LiveDoc }) {
+  const [recovered, setRecovered] = useState(live.recovered);
+  const [merged, setMerged] = useState(false);
+  useEffect(() => live.onMerged(() => setMerged(true)), [live]);
+  if (!recovered && !merged) return null;
+  return (
+    <div className="vl-notice" role="status">
+      {recovered ? (
+        <span>
+          We recovered edits from your last session that hadn’t reached the server. They’re being synced now.
+        </span>
+      ) : (
+        <span>
+          This document was changed elsewhere while you were away. Both sets of changes were merged — nothing
+          was lost.
+        </span>
+      )}
+      <button
+        className="vl-btn"
+        onClick={() => {
+          setRecovered(false);
+          setMerged(false);
+        }}
+      >
+        Dismiss
+      </button>
+    </div>
+  );
 }
 
 function TitleField({ live, docId }: { live: LiveDoc; docId: string }) {
@@ -95,6 +132,7 @@ export function EditorScreen({ docId }: { docId: string }) {
           <article className="vl-column">
             {live ? (
               <>
+                <Notices live={live} />
                 <TitleField live={live} docId={docId} />
                 <DocumentEditor
                   key={docId}
