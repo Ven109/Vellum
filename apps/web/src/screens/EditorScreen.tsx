@@ -3,7 +3,9 @@ import { acquireDoc, releaseDoc, titleOf } from "../data/ydocs.js";
 import type { LiveDoc } from "../data/ydocs.js";
 import { WELCOME_MARKDOWN } from "../data/seed.js";
 import { DocumentEditor } from "../editor/DocumentEditor.js";
+import { AssistantPanel } from "../components/AssistantPanel.js";
 import { RightRail } from "../components/RightRail.js";
+import { useAssistant } from "../state/assistant.js";
 import { TopBar } from "../components/TopBar.js";
 import { X } from "lucide-react";
 import { displayTitle } from "../components/Sidebar.js";
@@ -145,6 +147,7 @@ function DocumentPane({ docId, primary }: { docId: string; primary: boolean }) {
 export function EditorScreen({ docId, splitId }: { docId: string; splitId?: string }) {
   const meta = useApp((s) => s.documents.find((d) => d.id === docId));
   const splitMeta = useApp((s) => (splitId ? s.documents.find((d) => d.id === splitId) : undefined));
+  const assistantOpen = useAssistant((s) => s.open);
 
   if (!meta) {
     return (
@@ -191,7 +194,7 @@ export function EditorScreen({ docId, splitId }: { docId: string; splitId?: stri
           <DocumentPane docId={docId} primary />
         </div>
       </main>
-      <RightRail />
+      {assistantOpen ? <AssistantPanel /> : <RightRail />}
     </>
   );
 }

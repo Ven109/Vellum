@@ -1,6 +1,7 @@
 import { Columns2, FilePlus2, FolderPlus, Library, Link2, SunMoon } from "lucide-react";
 import { useEffect } from "react";
 import { useApp } from "../state/app.js";
+import { useAssistant } from "../state/assistant.js";
 import { MOD_KEY, useCommands } from "../state/commands.js";
 import { docPath, navigate, parseRoute } from "../state/router.js";
 
@@ -99,6 +100,11 @@ export function CoreCommands() {
       /* ignore */
     }
     const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "j") {
+        e.preventDefault();
+        useAssistant.getState().toggle();
+        return;
+      }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         const { paletteOpen, openPalette, closePalette } = useCommands.getState();
