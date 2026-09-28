@@ -41,6 +41,11 @@ export function ProposalCard() {
     return (
       <div className="vl-proposal-card" role="alert" style={{ position: "fixed", right: 24, bottom: 24 }}>
         <span>{error}</span>
+        {!error.startsWith("Add an AI provider") && (
+          <button className="vl-btn" onClick={() => void tryAgain()}>
+            <RotateCcw size={13} /> Try again
+          </button>
+        )}
         <button className="vl-btn" onClick={discard}>
           Dismiss
         </button>

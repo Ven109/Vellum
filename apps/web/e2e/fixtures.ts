@@ -45,7 +45,7 @@ export async function mockAnthropic(
   reply: (body: {
     messages: Array<{ role: string; content: string }>;
     system?: string;
-  }) => string | { status: number; error: { type: string; message: string } },
+  }) => string | { status: number; error: { type: string; message: string }; retryAfter?: number },
   seen: Array<{ headers: Record<string, string>; body: unknown }> = [],
 ) {
   await page.route("https://api.anthropic.com/**", async (route: Route) => {
@@ -60,7 +60,13 @@ export async function mockAnthropic(
     if (typeof out !== "string") {
       return route.fulfill({
         status: out.status,
-        headers: { ...cors(), "content-type": "application/json" },
+        headers: {
+          ...cors(),
+          "content-type": "application/json",
+          ...(out.retryAfter
+            ? { "retry-after": String(out.retryAfter), "access-control-expose-headers": "retry-after" }
+            : {}),
+        },
         body: JSON.stringify({ type: "error", error: out.error }),
       });
     }
@@ -101,8 +107,7 @@ export async function selectText(page: Page, text: string) {
               state: {
                 doc: { descendants(f: (n: { isText: boolean; text?: string }, p: number) => void): void };
               };
-              commands: { setTextSelection(r: { from: number; to: number }): void };
-              view: { focus(): void };
+              commands: { setTextSelection(r: { from: number; to: number }): void; focus(): void };
             };
           };
         };
@@ -113,8 +118,8 @@ export async function selectText(page: Page, text: string) {
       if (from === -1 && n.isText && n.text!.includes(needle)) from = p + n.text!.indexOf(needle);
     });
     if (from === -1) throw new Error(`text not found: ${needle}`);
+    ed.commands.focus();
     ed.commands.setTextSelection({ from, to: from + needle.length });
-    ed.view.focus(); // synchronous, unlike commands.focus(), so the next keystroke lands in the editor
   }, text);
 }
 

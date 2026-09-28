@@ -11,6 +11,7 @@ import {
 import { yUndoPluginKey } from "@tiptap/y-tiptap";
 import { create } from "zustand";
 import { redact } from "../data/providers.js";
+import { useUsage } from "../data/usage.js";
 import { recordVersion } from "../data/versions.js";
 import { activeProvider, assistantContext } from "./assistant.js";
 import { useApp } from "./app.js";
@@ -95,6 +96,13 @@ export const useRewrite = create<RewriteState>((set, get) => ({
       }
       updateProposal(editor, cleanRewrite(text), false);
       set({ streaming: false, usage });
+      void useUsage.getState().record({
+        providerId: target.provider.id,
+        kind: target.provider.kind,
+        model: get().model ?? target.model,
+        feature: "rewrite",
+        ...usage,
+      });
     } catch (e) {
       const err = e instanceof ProviderError ? e : new ProviderError("unknown", String(e));
       if (err.code === "aborted") {
@@ -103,7 +111,11 @@ export const useRewrite = create<RewriteState>((set, get) => ({
         set({ streaming: false, usage });
       } else {
         discardProposal(editor);
-        set({ streaming: false, error: redact(err.message, [target.provider.apiKey]) });
+        set({
+          streaming: false,
+          error: redact(err.message, [target.provider.apiKey]),
+          range: { from: proposal.from, to: proposal.to },
+        });
       }
     } finally {
       set({ controller: null });
@@ -120,7 +132,7 @@ export const useRewrite = create<RewriteState>((set, get) => ({
     if (!range) return;
     discardProposal(editor);
     editor.commands.setTextSelection(range);
-    set({ range: null });
+    set({ range: null, error: null });
     await get().request(instruction);
   },
 

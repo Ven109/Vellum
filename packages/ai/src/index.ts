@@ -7,3 +7,4 @@ export { anthropicAdapter, ANTHROPIC_DEFAULT_MODEL } from "./adapters/anthropic.
 export { openAIAdapter } from "./adapters/openai.js";
 export { ollamaAdapter } from "./adapters/ollama.js";
 export * from "./prompts.js";
+export * from "./pricing.js";
