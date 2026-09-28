@@ -1,8 +1,11 @@
 import { formatReadingTime } from "@vellum/core";
 import type { DocumentMeta } from "@vellum/core";
-import { Check, CloudOff, Loader2, Share2, Sparkles, TriangleAlert } from "lucide-react";
+import { Check, CloudOff, Loader2, MessagesSquare, Share2, Sparkles, TriangleAlert } from "lucide-react";
 import { useAssistant } from "../state/assistant.js";
 import { ModeSwitch } from "./SuggestionsList.js";
+import { useReview } from "./ReviewPanel.js";
+import { useComments } from "../state/comments.js";
+import { useSuggestions } from "../state/suggestions.js";
 import { useState } from "react";
 import { useApp } from "../state/app.js";
 import { useDocSession } from "../state/session.js";
@@ -36,6 +39,10 @@ export function TopBar({ doc }: { doc: DocumentMeta }) {
   const saveState = useDocSession((s) => s.saveState);
   const [copied, setCopied] = useState(false);
   const assistantOpen = useAssistant((s) => s.open);
+  const reviewOpen = useReview((s) => s.open);
+  const reviewCount =
+    useComments((s) => s.threads.filter((t) => t.status === "open").length) +
+    useSuggestions((s) => s.items.length);
   const save = SAVE_LABEL[saveState];
 
   async function share() {
@@ -94,9 +101,23 @@ export function TopBar({ doc }: { doc: DocumentMeta }) {
         </div>
         <button
           className="vl-btn"
+          aria-pressed={reviewOpen}
+          onClick={() => {
+            useAssistant.getState().setOpen(false);
+            useReview.getState().setOpen(!reviewOpen);
+          }}
+        >
+          <MessagesSquare size={14} /> Review
+          {reviewCount > 0 && <span className="vl-count-pill">{reviewCount}</span>}
+        </button>
+        <button
+          className="vl-btn"
           aria-pressed={assistantOpen}
           title="Assistant (Ctrl/⌘ J)"
-          onClick={() => useAssistant.getState().toggle()}
+          onClick={() => {
+            useReview.getState().setOpen(false);
+            useAssistant.getState().toggle();
+          }}
         >
           <Sparkles size={14} /> Assistant
         </button>
