@@ -3,6 +3,7 @@ import type { ChatMessage, PromptSource, Usage } from "@vellum/ai";
 import { docToMarkdown } from "@vellum/editor";
 import { create } from "zustand";
 import { redact, withKey } from "../data/providers.js";
+import { useUsage } from "../data/usage.js";
 import { useApp } from "./app.js";
 import { useProviders } from "./providers.js";
 import { useDocSession } from "./session.js";
@@ -14,7 +15,8 @@ export interface ThreadMessage {
   sources?: PromptSource[];
   model?: string;
   usage?: Usage;
-  error?: { message: string; retryable: boolean };
+  error?: { message: string; retryable: boolean; retryAt?: number };
+  costUsd?: number | null;
   streaming?: boolean;
 }
 
@@ -116,6 +118,24 @@ export const useAssistant = create<AssistantState>((set, get) => ({
       });
       return;
     }
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      set({
+        thread: [
+          ...get().thread,
+          userMsg,
+          {
+            id: nextId(),
+            role: "assistant",
+            text: "",
+            error: {
+              message: "You're offline. Your question is kept — try again when you're back online.",
+              retryable: true,
+            },
+          },
+        ],
+      });
+      return;
+    }
     const mode = get().contextMode === "selection" && !currentSelection() ? "document" : get().contextMode;
     const { system, sources } = buildSystemPrompt(assistantContext(mode));
     userMsg.sources = sources;
@@ -157,14 +177,25 @@ export const useAssistant = create<AssistantState>((set, get) => ({
           patch({ model: ev.model });
         }
       }
-      patch({ streaming: false, usage });
+      const entry = await useUsage.getState().record({
+        providerId: target.provider.id,
+        kind: target.provider.kind,
+        model: get().thread.find((m) => m.id === reply.id)?.model ?? target.model,
+        feature: "chat",
+        ...usage,
+      });
+      patch({ streaming: false, usage, costUsd: entry.costUsd });
     } catch (e) {
       const err = e instanceof ProviderError ? e : new ProviderError("unknown", String(e));
       if (err.code === "aborted") patch({ streaming: false });
       else
         patch({
           streaming: false,
-          error: { message: redact(err.message, [target.provider.apiKey]), retryable: err.retryable },
+          error: {
+            message: redact(err.message, [target.provider.apiKey]),
+            retryable: err.retryable,
+            ...(err.opts.retryAfterMs ? { retryAt: Date.now() + err.opts.retryAfterMs } : {}),
+          },
         });
     } finally {
       set({ busy: false, controller: null });

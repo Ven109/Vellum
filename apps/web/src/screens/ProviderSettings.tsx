@@ -1,4 +1,12 @@
-import { PROVIDER_PRESETS, ProviderError, adapterFor, testConnection } from "@vellum/ai";
+import {
+  PROVIDER_PRESETS,
+  ProviderError,
+  adapterFor,
+  formatTokens,
+  formatUsd,
+  testConnection,
+} from "@vellum/ai";
+import { useUsage } from "../data/usage.js";
 import type { ModelInfo, ProviderKind } from "@vellum/ai";
 import { createId } from "@vellum/core";
 import { CheckCircle2, KeyRound, Loader2, ShieldCheck, Trash2, XCircle } from "lucide-react";
@@ -249,6 +257,61 @@ function AddProvider({ onDone }: { onDone: () => void }) {
   );
 }
 
+function UsageCard() {
+  const { month, byModel, load } = useUsage();
+  useEffect(() => {
+    void load();
+  }, [load]);
+  const models = Object.entries(byModel).sort((a, b) => b[1].costUsd - a[1].costUsd);
+  return (
+    <section className="vl-card" aria-labelledby="usage">
+      <h2 id="usage">Usage this month</h2>
+      <p className="vl-muted">
+        Estimated from list prices and kept only on this device. AI usage is billed by your provider, not by
+        Vellum — check your provider’s dashboard for the exact amount.
+      </p>
+      {models.length === 0 ? (
+        <p className="vl-muted">No assistant requests yet this month.</p>
+      ) : (
+        <table className="vl-table vl-usage-table">
+          <thead>
+            <tr>
+              <th>Model</th>
+              <th className="vl-num">Requests</th>
+              <th className="vl-num">Input</th>
+              <th className="vl-num">Output</th>
+              <th className="vl-num">Est. cost</th>
+            </tr>
+          </thead>
+          <tbody>
+            {models.map(([model, t]) => (
+              <tr key={model}>
+                <td>{model}</td>
+                <td className="vl-num">{t.requests}</td>
+                <td className="vl-num">{formatTokens(t.inputTokens)}</td>
+                <td className="vl-num">{formatTokens(t.outputTokens)}</td>
+                <td className="vl-num">
+                  {t.partialCost && t.costUsd === 0 ? "unknown" : formatUsd(t.costUsd)}
+                </td>
+              </tr>
+            ))}
+            <tr>
+              <th>Total</th>
+              <th className="vl-num">{month.requests}</th>
+              <th className="vl-num">{formatTokens(month.inputTokens)}</th>
+              <th className="vl-num">{formatTokens(month.outputTokens)}</th>
+              <th className="vl-num">
+                {formatUsd(month.costUsd)}
+                {month.partialCost && "+"}
+              </th>
+            </tr>
+          </tbody>
+        </table>
+      )}
+    </section>
+  );
+}
+
 export function ProviderSettings() {
   const { providers, keys, loaded, load, remove, save, setDefault } = useProviders();
   const workspace = useApp((s) => s.workspace);
@@ -346,6 +409,8 @@ export function ProviderSettings() {
               </ul>
             </section>
           )}
+
+          {providers.length > 0 && <UsageCard />}
 
           {adding ? (
             <AddProvider onDone={() => setAdding(providers.length === 0 && false)} />

@@ -1,4 +1,5 @@
-import { QUICK_ACTIONS } from "@vellum/ai";
+import { QUICK_ACTIONS, formatTokens, formatUsd } from "@vellum/ai";
+import { useUsage } from "../data/usage.js";
 import { useRewrite } from "../state/rewrite.js";
 import { countWords } from "@vellum/core";
 import { AlertTriangle, ArrowUp, KeyRound, RotateCcw, Sparkles, Square, Trash2, X } from "lucide-react";
@@ -25,8 +26,19 @@ function useSelectionWords(): number {
   return n;
 }
 
+function useCountdown(until?: number): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!until || until <= Date.now()) return;
+    const t = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(t);
+  }, [until]);
+  return until ? Math.max(0, Math.ceil((until - now) / 1000)) : 0;
+}
+
 function Message({ m }: { m: ThreadMessage }) {
   const retry = useAssistant((s) => s.retry);
+  const wait = useCountdown(m.error?.retryAt);
   if (m.role === "user") {
     return (
       <div className="vl-msg vl-msg-user">
@@ -52,8 +64,8 @@ function Message({ m }: { m: ThreadMessage }) {
         <div className="vl-msg-error" role="alert">
           <AlertTriangle size={14} /> {m.error.message}
           {m.error.retryable && (
-            <button className="vl-btn" onClick={() => void retry()}>
-              <RotateCcw size={13} /> Try again
+            <button className="vl-btn" disabled={wait > 0} onClick={() => void retry()}>
+              <RotateCcw size={13} /> {wait > 0 ? `Try again in ${wait}s` : "Try again"}
             </button>
           )}
           {m.error.message.startsWith("Add an AI provider") && (
@@ -64,13 +76,36 @@ function Message({ m }: { m: ThreadMessage }) {
         </div>
       )}
       {!m.streaming && m.model && !m.error && (
-        <div className="vl-msg-meta">
+        <div className="vl-msg-meta" data-testid="message-usage">
           {m.model}
           {m.usage && m.usage.inputTokens + m.usage.outputTokens > 0 && (
-            <> · {(m.usage.inputTokens + m.usage.outputTokens).toLocaleString()} tokens</>
+            <>
+              {" "}
+              · {formatTokens(m.usage.inputTokens)} in / {formatTokens(m.usage.outputTokens)} out
+              {m.costUsd !== undefined && <> · {formatUsd(m.costUsd)}</>}
+            </>
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function UsageFooter() {
+  const { session, month, load } = useUsage();
+  useEffect(() => {
+    void load();
+  }, [load]);
+  const tokens = session.inputTokens + session.outputTokens;
+  return (
+    <div
+      className="vl-usage-footer"
+      data-testid="usage-footer"
+      title="Estimated from list prices. Your provider bills you directly."
+    >
+      This session: {formatTokens(tokens)} tokens · {formatUsd(session.requests ? session.costUsd : 0)}
+      {session.partialCost && "+"} · This month: {formatUsd(month.costUsd)}
+      {month.partialCost && "+"}
     </div>
   );
 }
@@ -259,6 +294,7 @@ export function AssistantPanel() {
               )}
             </div>
           </form>
+          <UsageFooter />
         </>
       )}
     </aside>

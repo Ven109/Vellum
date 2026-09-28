@@ -1636,3 +1636,14 @@ button.vl-wordcount:hover {
 .vl-minus {
   color: var(--danger);
 }
+
+.vl-usage-footer {
+  padding: 6px 16px 10px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.vl-usage-table th,
+.vl-usage-table td {
+  padding: 6px 8px;
+}
