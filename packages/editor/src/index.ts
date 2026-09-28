@@ -1,2 +1,5 @@
 /** Vellum rich-text editor: schema, extensions and editor helpers. */
-export {};
+export * from "./extensions.js";
+export * from "./annotations.js";
+export * from "./markdown.js";
+export * from "./paste.js";
