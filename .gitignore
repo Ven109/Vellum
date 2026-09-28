@@ -10,5 +10,5 @@ coverage/
 .DS_Store
 playwright-report/
 test-results/
-data/
+/data/
 apps/web/test-results
