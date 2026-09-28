@@ -68,29 +68,11 @@ function TitleField({ live, docId }: { live: LiveDoc; docId: string }) {
   const ytitle = titleOf(live.doc);
   const [value, setValue] = useState(() => ytitle.toString() || meta?.title || "");
   const ref = useRef<HTMLTextAreaElement>(null);
-  const dbg = (msg: string) => {
-    if (!import.meta.env.DEV) return;
-    const w = window as unknown as { __titleLog?: string[] };
-    (w.__titleLog ??= []).push(
-      `${performance.now().toFixed(0)} ${docId.slice(-6)} guid=${live.doc.guid.slice(-6)} cid=${live.doc.clientID} ${msg}`,
-    );
-  };
-  useEffect(() => {
-    dbg(`mount value=${JSON.stringify(value)}`);
-    return () => dbg("unmount");
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => dbg(`value=${JSON.stringify(value)}`), [value]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!ytitle.length && meta?.title) ytitle.insert(0, meta.title);
     const observer = () => {
       const next = ytitle.toString();
-      if (import.meta.env.DEV) {
-        const w = window as unknown as { __titleLog?: string[] };
-        (w.__titleLog ??= []).push(
-          `${JSON.stringify(next)} ${new Error().stack?.split("\n").slice(2, 9).join(" | ")}`,
-        );
-      }
       setValue(next);
       void updateDocument(docId, { title: next, updatedAt: new Date().toISOString() });
     };
@@ -114,7 +96,6 @@ function TitleField({ live, docId }: { live: LiveDoc; docId: string }) {
       ref={ref}
       className="vl-title"
       rows={1}
-      autoComplete="off"
       placeholder="Untitled"
       aria-label="Title"
       value={value}

@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { newDraft } from "./fixtures.js";
 
 test("write in a new draft and keep it after reload", async ({ page }) => {
   page.on("console", (m) => {
@@ -10,10 +11,7 @@ test("write in a new draft and keep it after reload", async ({ page }) => {
   await page.getByRole("main").getByRole("link", { name: "Welcome to Vellum" }).click();
   await expect(page.getByRole("textbox", { name: "Title" })).toHaveValue("Welcome to Vellum");
 
-  await page
-    .getByRole("navigation", { name: "Workspace" })
-    .getByRole("button", { name: "New draft" })
-    .click();
+  await newDraft(page);
   await page.getByRole("textbox", { name: "Title" }).fill("On workshops");
   await page.getByRole("textbox", { name: "Title" }).press("Enter");
   await page.keyboard.type("## The quiet tool");
@@ -33,28 +31,7 @@ test("write in a new draft and keep it after reload", async ({ page }) => {
   await expect(page.locator(".vl-prose strong")).toHaveText("nobody");
 
   await expect(page.getByRole("status").filter({ hasText: /Saved|Saving|Offline/ })).toHaveText("Saved");
-  const before = await page.evaluate(() =>
-    JSON.stringify((window as unknown as { __titleLog?: string[] }).__titleLog ?? []),
-  );
-  expect(await page.getByRole("textbox", { name: "Title" }).inputValue(), before).toBe("On workshops");
   await page.reload();
-  await page.waitForTimeout(1500);
-  const diag = await page.evaluate(() => {
-    const w = window as unknown as {
-      __vellumLive?: Map<string, { doc: { getText(n: string): { toString(): string } }; saveState: string }>;
-      __vellumApp?: { getState(): { documents: Array<{ id: string; title: string }> } };
-    };
-    const id = location.pathname.split("/").pop();
-    const liveDoc = w.__vellumLive?.get(id!);
-    return JSON.stringify({
-      path: location.pathname,
-      yTitle: liveDoc?.doc.getText("title").toString(),
-      save: liveDoc?.saveState,
-      liveIds: [...(w.__vellumLive?.keys() ?? [])],
-      metaTitle: w.__vellumApp?.getState().documents.find((d) => d.id === id)?.title,
-      textarea: (document.querySelector(".vl-title") as HTMLTextAreaElement | null)?.value,
-    });
-  });
-  await expect(page.getByRole("textbox", { name: "Title" }), diag).toHaveValue("On workshops");
+  await expect(page.getByRole("textbox", { name: "Title" })).toHaveValue("On workshops");
   await expect(page.locator(".vl-prose strong")).toHaveText("nobody");
 });

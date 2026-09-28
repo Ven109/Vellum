@@ -78,8 +78,6 @@ function hasLocalAckRecord(id: string): boolean {
 }
 
 const live = new Map<string, LiveDoc>();
-if (import.meta.env.DEV && typeof window !== "undefined")
-  (window as unknown as { __vellumLive: typeof live }).__vellumLive = live;
 
 export function acquireDoc(id: string): LiveDoc {
   let entry = live.get(id);

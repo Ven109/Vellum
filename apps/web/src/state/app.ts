@@ -95,8 +95,13 @@ export const useApp = create<AppState>((set, get) => {
         createdAt: now,
         updatedAt: now,
       };
-      await repo.putDocument(doc);
+      // Show and open the new draft immediately; the write is queued so later edits land after it.
       set({ documents: [doc, ...get().documents] });
+      const write = repo.putDocument(doc);
+      writes.set(
+        doc.id,
+        write.catch(() => undefined),
+      );
       return doc;
     },
 
@@ -196,6 +201,3 @@ export const useApp = create<AppState>((set, get) => {
     },
   };
 });
-
-if (import.meta.env.DEV && typeof window !== "undefined")
-  (window as unknown as { __vellumApp: typeof useApp }).__vellumApp = useApp;

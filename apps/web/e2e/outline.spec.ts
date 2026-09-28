@@ -1,11 +1,9 @@
 import { expect, test } from "@playwright/test";
+import { newDraft } from "./fixtures.js";
 
 test("outline follows the document and the stats popover shows details", async ({ page }) => {
   await page.goto("/");
-  await page
-    .getByRole("navigation", { name: "Workspace" })
-    .getByRole("button", { name: "New draft" })
-    .click();
+  await newDraft(page);
   await page.getByRole("textbox", { name: "Title" }).fill("Long piece");
   await page.getByRole("textbox", { name: "Title" }).press("Enter");
 

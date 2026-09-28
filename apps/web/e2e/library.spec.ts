@@ -1,9 +1,10 @@
 import { expect, test } from "@playwright/test";
+import { newDraft } from "./fixtures.js";
 
 test("library lists documents by status and opens them from the keyboard", async ({ page }) => {
   await page.goto("/library");
   const sidebar = page.getByRole("navigation", { name: "Workspace" });
-  await sidebar.getByRole("button", { name: "New draft" }).click();
+  await newDraft(page);
   await page.getByRole("textbox", { name: "Title" }).fill("Keyboard pick");
   await sidebar.getByRole("link", { name: "Library" }).click();
 

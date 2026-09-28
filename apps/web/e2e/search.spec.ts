@@ -1,11 +1,9 @@
 import { expect, test } from "@playwright/test";
+import { newDraft } from "./fixtures.js";
 
 test("full-text search finds words in document bodies", async ({ page }) => {
   await page.goto("/library");
-  await page
-    .getByRole("navigation", { name: "Workspace" })
-    .getByRole("button", { name: "New draft" })
-    .click();
+  await newDraft(page);
   await page.getByRole("textbox", { name: "Title" }).fill("Breakfast");
   await page.getByRole("textbox", { name: "Title" }).press("Enter");
   await page.keyboard.type("Seville oranges make the best marmalade in January.");
