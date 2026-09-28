@@ -13,7 +13,13 @@ export async function ensureSeeded(repo: Repository): Promise<{ user: User; work
   const now = new Date().toISOString();
   let user = await repo.getCurrentUser();
   if (!user) {
-    user = { id: createId("usr"), email: "you@localhost.invalid", name: "You", avatarColor: "#9A3412", createdAt: now };
+    user = {
+      id: createId("usr"),
+      email: "you@localhost.invalid",
+      name: "You",
+      avatarColor: "#9A3412",
+      createdAt: now,
+    };
     await repo.putUser(user);
   }
   const workspaces = await repo.listWorkspaces();
@@ -28,7 +34,13 @@ export async function ensureSeeded(repo: Repository): Promise<{ user: User; work
       settings: WorkspaceSettings.parse({}),
     };
     await repo.putWorkspace(workspace);
-    const essays: Collection = { id: createId("col"), workspaceId: workspace.id, name: "Essays", color: COLLECTION_COLOURS[0]!, sortOrder: 0 };
+    const essays: Collection = {
+      id: createId("col"),
+      workspaceId: workspace.id,
+      name: "Essays",
+      color: COLLECTION_COLOURS[0]!,
+      sortOrder: 0,
+    };
     await repo.putCollection(essays);
     const welcome: DocumentMeta = {
       id: createId("doc"),
