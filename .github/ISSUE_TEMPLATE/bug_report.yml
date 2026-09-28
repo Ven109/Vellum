@@ -1,0 +1,42 @@
+name: Bug report
+description: Something is not working as expected
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open ...
+        2. Click ...
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Web (hosted)
+        - Web (self-hosted)
+        - Desktop — macOS
+        - Desktop — Windows
+        - Desktop — Linux
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Vellum version
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Paste relevant logs. Remove API keys and personal content first.
+      render: text
