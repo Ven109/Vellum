@@ -1,5 +1,6 @@
 import type { Editor } from "@tiptap/core";
 import type { DocumentStats } from "@vellum/core";
+import type { Awareness } from "y-protocols/awareness";
 import { create } from "zustand";
 
 export interface HeadingEntry {
@@ -20,10 +21,14 @@ export interface DocSessionState {
   openedAt: number;
   headings: HeadingEntry[];
   saveState: "saved" | "saving" | "offline" | "error";
+  /** Presence for the open document (who's here, where their cursors are). */
+  awareness: Awareness | null;
   open(docId: string, editor: Editor, wordCount: number): void;
   close(docId: string): void;
   update(
-    patch: Partial<Pick<DocSessionState, "wordCount" | "stats" | "headings" | "saveState" | "activeHeading">>,
+    patch: Partial<
+      Pick<DocSessionState, "wordCount" | "stats" | "headings" | "saveState" | "activeHeading" | "awareness">
+    >,
   ): void;
 }
 
@@ -37,6 +42,7 @@ export const useDocSession = create<DocSessionState>((set, get) => ({
   openedAt: 0,
   headings: [],
   saveState: "saved",
+  awareness: null,
   open(docId, editor, wordCount) {
     set({
       docId,
@@ -49,7 +55,7 @@ export const useDocSession = create<DocSessionState>((set, get) => ({
     });
   },
   close(docId) {
-    if (get().docId === docId) set({ docId: null, editor: null, headings: [] });
+    if (get().docId === docId) set({ docId: null, editor: null, headings: [], awareness: null });
   },
   update(patch) {
     set(patch);

@@ -1,4 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import type { DocumentMeta } from "@vellum/core";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { account } from "../data/account.js";
+import { canEdit, useSuggestions } from "../state/suggestions.js";
 import { acquireDoc, releaseDoc, titleOf } from "../data/ydocs.js";
 import type { LiveDoc } from "../data/ydocs.js";
 import { WELCOME_MARKDOWN } from "../data/seed.js";
@@ -70,15 +73,18 @@ function Notices({ live }: { live: LiveDoc }) {
   );
 }
 
-function TitleField({ live, docId }: { live: LiveDoc; docId: string }) {
-  const meta = useApp((s) => s.documents.find((d) => d.id === docId));
+function TitleField({ live, docId, meta }: { live: LiveDoc; docId: string; meta?: DocumentMeta }) {
+  const role = useSuggestions((s) => s.role);
+  const shared = useApp((s) => s.shared.some((d) => d.docId === docId));
   const updateDocument = useApp((s) => s.updateDocument);
   const ytitle = titleOf(live.doc);
   const [value, setValue] = useState(() => ytitle.toString() || meta?.title || "");
   const ref = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    if (!ytitle.length && meta?.title) ytitle.insert(0, meta.title);
+    // Seed the title from metadata for documents created before titles lived in the CRDT. Shared
+    // documents get theirs from the server.
+    if (!ytitle.length && meta?.title && !shared) ytitle.insert(0, meta.title);
     const observer = () => {
       const next = ytitle.toString();
       setValue(next);
@@ -106,6 +112,7 @@ function TitleField({ live, docId }: { live: LiveDoc; docId: string }) {
       rows={1}
       placeholder="Untitled"
       aria-label="Title"
+      readOnly={!canEdit(role)}
       value={value}
       onChange={(e) => {
         const next = e.target.value.replace(/\n/g, " ");
@@ -124,7 +131,7 @@ function TitleField({ live, docId }: { live: LiveDoc; docId: string }) {
   );
 }
 
-function DocumentPane({ docId, primary }: { docId: string; primary: boolean }) {
+function DocumentPane({ docId, primary, meta }: { docId: string; primary: boolean; meta?: DocumentMeta }) {
   const welcomeId = useApp((s) => s.welcomeDocId);
   const live = useLiveDoc(docId, primary);
   return (
@@ -132,11 +139,12 @@ function DocumentPane({ docId, primary }: { docId: string; primary: boolean }) {
       {live ? (
         <>
           <Notices live={live} />
-          <TitleField live={live} docId={docId} />
+          <TitleField live={live} docId={docId} meta={meta} />
           <DocumentEditor
             key={docId}
             docId={docId}
             ydoc={live.doc}
+            awareness={live.awareness}
             primary={primary}
             initialMarkdown={docId === welcomeId ? WELCOME_MARKDOWN : undefined}
           />
@@ -150,8 +158,52 @@ function DocumentPane({ docId, primary }: { docId: string; primary: boolean }) {
   );
 }
 
+/** Your role on the open document: from the server when signed in, otherwise it's yours. */
+function useDocAccess(docId: string) {
+  useEffect(() => {
+    let cancelled = false;
+    const { account: me, shared } = useApp.getState();
+    const sharedRole = shared.find((d) => d.docId === docId)?.role;
+    useSuggestions.setState({ role: sharedRole ?? "owner" });
+    if (!me) return;
+    account.access(docId).then(
+      (r) => {
+        // Not on the server yet means it's a new document of yours.
+        if (!cancelled && r.registered) useSuggestions.setState({ role: r.role ?? "view" });
+      },
+      () => undefined,
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [docId]);
+}
+
+/** Metadata for a document someone shared with you (it isn't in your own library). */
+function useMeta(docId: string): DocumentMeta | undefined {
+  const own = useApp((s) => s.documents.find((d) => d.id === docId));
+  const shared = useApp((s) => s.shared.find((d) => d.docId === docId));
+  return useMemo(() => {
+    if (own || !shared) return own;
+    return {
+      id: shared.docId,
+      workspaceId: shared.workspaceId,
+      collectionId: null,
+      title: shared.title,
+      status: "draft",
+      ownerId: "",
+      isTemplate: false,
+      tags: [],
+      wordCount: 0,
+      createdAt: "",
+      updatedAt: "",
+    } satisfies DocumentMeta;
+  }, [own, shared]);
+}
+
 export function EditorScreen({ docId, splitId }: { docId: string; splitId?: string }) {
-  const meta = useApp((s) => s.documents.find((d) => d.id === docId));
+  const meta = useMeta(docId);
+  useDocAccess(docId);
   const splitMeta = useApp((s) => (splitId ? s.documents.find((d) => d.id === splitId) : undefined));
   const assistantOpen = useAssistant((s) => s.open);
   const reviewOpen = useReview((s) => s.open);
@@ -174,7 +226,7 @@ export function EditorScreen({ docId, splitId }: { docId: string; splitId?: stri
         {!focus && <TopBar doc={meta} />}
         <div className="vl-split">
           <section className="vl-scroll" aria-label="Primary document">
-            <DocumentPane docId={docId} primary />
+            <DocumentPane docId={docId} primary meta={meta} />
           </section>
           <section
             className="vl-scroll vl-split-secondary"
@@ -203,7 +255,7 @@ export function EditorScreen({ docId, splitId }: { docId: string; splitId?: stri
       <main className="vl-main" data-focus={focus || undefined} data-dimming={focus ? dimming : undefined}>
         {!focus && <TopBar doc={meta} />}
         <div className="vl-scroll">
-          <DocumentPane docId={docId} primary />
+          <DocumentPane docId={docId} primary meta={meta} />
         </div>
         {focus && <FocusHud />}
       </main>

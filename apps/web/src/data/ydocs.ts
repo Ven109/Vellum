@@ -1,3 +1,4 @@
+import { Awareness } from "y-protocols/awareness";
 import * as Y from "yjs";
 import { LocalDocPersistence } from "./local-persistence.js";
 import { detectServer, syncUrl, syncWorkspaceFor } from "./server.js";
@@ -12,6 +13,8 @@ export type SaveState = "saved" | "saving" | "offline" | "error";
  */
 export class LiveDoc {
   readonly doc: Y.Doc;
+  /** Who else is here and where their cursors are; synced with the document when online. */
+  readonly awareness: Awareness;
   readonly local: LocalDocPersistence;
   remote: DocSyncProvider | null = null;
   readonly whenLoaded: Promise<void>;
@@ -23,15 +26,23 @@ export class LiveDoc {
 
   constructor(readonly id: string) {
     this.doc = new Y.Doc({ guid: id });
+    this.awareness = new Awareness(this.doc);
+    this.awareness.setLocalStateField("user", presenceIdentity());
     this.local = new LocalDocPersistence(id, this.doc);
     this.local.onChange(() => this.emit());
     this.whenLoaded = this.local.whenLoaded.then(async () => {
       const workspaceId = syncWorkspaceFor(id);
       if (workspaceId && (await detectServer())) {
-        this.remote = new DocSyncProvider(id, this.doc, syncUrl(id, workspaceId), {
-          change: () => this.emit(),
-          merged: () => this.mergedListeners.forEach((l) => l()),
-        });
+        this.remote = new DocSyncProvider(
+          id,
+          this.doc,
+          syncUrl(id, workspaceId),
+          {
+            change: () => this.emit(),
+            merged: () => this.mergedListeners.forEach((l) => l()),
+          },
+          { awareness: this.awareness },
+        );
         this.recovered = hasLocalAckRecord(id) && this.remote.hasPendingChanges;
       }
     });
@@ -39,6 +50,7 @@ export class LiveDoc {
 
   get saveState(): SaveState {
     if (this.local.hasFailed) return "error";
+    if (this.remote?.state === "denied") return "error";
     if (this.remote) {
       if (this.remote.state !== "connected") return "offline";
       if (this.local.isWriting || this.remote.hasPendingChanges) return "saving";
@@ -63,11 +75,24 @@ export class LiveDoc {
 
   destroy(): void {
     this.remote?.destroy();
+    this.awareness.destroy();
     this.local.destroy();
     this.listeners.clear();
     this.mergedListeners.clear();
     this.doc.destroy();
   }
+}
+
+/** Name and colour shown to others next to your cursor. */
+let identity: { id: string; name: string; color: string } = { id: "", name: "You", color: "#9A3412" };
+
+export function setPresenceIdentity(user: { id: string; name: string; avatarColor?: string }): void {
+  identity = { id: user.id, name: user.name, color: user.avatarColor ?? "#9A3412" };
+  for (const d of live.values()) d.awareness.setLocalStateField("user", identity);
+}
+
+function presenceIdentity() {
+  return identity;
 }
 
 function hasLocalAckRecord(id: string): boolean {

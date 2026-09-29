@@ -11,6 +11,8 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { toggleFocus } from "./CoreCommands.js";
+import { ShareDialog } from "./ShareDialog.js";
+import { usePeers } from "../state/presence.js";
 import { useAssistant } from "../state/assistant.js";
 import { ModeSwitch } from "./SuggestionsList.js";
 import { useReview } from "./ReviewPanel.js";
@@ -47,19 +49,16 @@ export function TopBar({ doc }: { doc: DocumentMeta }) {
   const stats = useDocSession((s) => s.stats);
   const [statsOpen, setStatsOpen] = useState(false);
   const saveState = useDocSession((s) => s.saveState);
-  const [copied, setCopied] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const awareness = useDocSession((s) => s.awareness);
+  const peers = usePeers(awareness, user?.id);
+  const role = useSuggestions((s) => s.role);
   const assistantOpen = useAssistant((s) => s.open);
   const reviewOpen = useReview((s) => s.open);
   const reviewCount =
     useComments((s) => s.threads.filter((t) => t.status === "open").length) +
     useSuggestions((s) => s.items.length);
   const save = SAVE_LABEL[saveState];
-
-  async function share() {
-    await navigator.clipboard?.writeText(window.location.href).catch(() => undefined);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  }
 
   return (
     <header className="vl-topbar">
@@ -102,13 +101,34 @@ export function TopBar({ doc }: { doc: DocumentMeta }) {
             </div>
           )}
         </div>
-        <div className="vl-avatars" aria-label="People in this document">
+        <ul className="vl-avatars" aria-label="People in this document">
           {user && (
-            <span className="vl-avatar" style={{ background: user.avatarColor }} title={user.name}>
+            <li className="vl-avatar" style={{ background: user.avatarColor }} title={`${user.name} (you)`}>
               {user.name.slice(0, 1)}
-            </span>
+            </li>
           )}
-        </div>
+          {peers.slice(0, 4).map((p) => (
+            <li key={p.id} className="vl-avatar vl-peer" style={{ background: p.color }} title={p.name}>
+              {p.name.slice(0, 1).toUpperCase()}
+            </li>
+          ))}
+          {peers.length > 4 && (
+            <li
+              className="vl-avatar vl-avatar-more"
+              title={peers
+                .slice(4)
+                .map((p) => p.name)
+                .join(", ")}
+            >
+              +{peers.length - 4}
+            </li>
+          )}
+        </ul>
+        {role !== "owner" && role !== "edit" && (
+          <span className="vl-role-badge" data-testid="role-badge">
+            {role === "view" ? "Viewing" : role === "comment" ? "Commenting" : "Suggesting"}
+          </span>
+        )}
         <button
           className="vl-btn"
           aria-label={reviewCount > 0 ? `Review, ${reviewCount} open` : "Review"}
@@ -141,13 +161,18 @@ export function TopBar({ doc }: { doc: DocumentMeta }) {
         >
           <Maximize2 size={15} />
         </button>
-        <button
-          className="vl-btn vl-btn-primary"
-          aria-label={copied ? "Link copied" : "Share"}
-          onClick={() => void share()}
-        >
-          <Share2 size={14} /> <span className="vl-btn-label">{copied ? "Link copied" : "Share"}</span>
-        </button>
+        <div className="vl-share-wrap">
+          <button
+            className="vl-btn vl-btn-primary"
+            aria-label="Share"
+            aria-expanded={shareOpen}
+            aria-haspopup="dialog"
+            onClick={() => setShareOpen((o) => !o)}
+          >
+            <Share2 size={14} /> <span className="vl-btn-label">Share</span>
+          </button>
+          {shareOpen && <ShareDialog doc={doc} onClose={() => setShareOpen(false)} />}
+        </div>
       </div>
     </header>
   );

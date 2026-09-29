@@ -89,3 +89,37 @@ describe("sync server", () => {
     expect(app.ctx.docs.load(DOC).getText("t").toString()).toBe("xxxxxxxxxx");
   });
 });
+
+describe("presence", () => {
+  it("tells a newcomer who is already in the document", async () => {
+    const { Awareness } = await import("y-protocols/awareness");
+    const { sync } = await import("@vellum/core");
+    const WebSocket = (await import("ws")).default;
+    const a = new Y.Doc();
+    const aw = new Awareness(a);
+    aw.setLocalStateField("user", { name: "Ann" });
+    const wsA = new WebSocket(`${base.replace("http", "ws")}/sync/${DOC}?ws=${ws}`, { headers });
+    wsA.binaryType = "arraybuffer";
+    const sA = new sync.SyncSession(a, { send: (m) => wsA.send(m) }, { awareness: aw });
+    wsA.on("message", (d: ArrayBuffer) => void sA.receive(new Uint8Array(d)));
+    await new Promise((r) => wsA.once("open", r));
+    sA.start();
+    await new Promise((r) => setTimeout(r, 100));
+
+    const b = new Y.Doc();
+    const bw = new Awareness(b);
+    const wsB = new WebSocket(`${base.replace("http", "ws")}/sync/${DOC}?ws=${ws}`, { headers });
+    wsB.binaryType = "arraybuffer";
+    const sB = new sync.SyncSession(b, { send: (m) => wsB.send(m) }, { awareness: bw });
+    wsB.on("message", (d: ArrayBuffer) => void sB.receive(new Uint8Array(d)));
+    await new Promise((r) => wsB.once("open", r));
+    sB.start();
+    await until(() =>
+      [...bw.getStates().values()].some((s) => (s as { user?: { name: string } }).user?.name === "Ann"),
+    );
+    wsA.close();
+    wsB.close();
+    aw.destroy();
+    bw.destroy();
+  });
+});

@@ -33,6 +33,27 @@ A document syncs only within its server workspace. The sync socket (`/sync/:docI
 
 Workspaces created while local-only stay on the device and don't sync.
 
+## Sharing and presence
+
+Open **Share** in a document to share it with anyone who has an account on the server. Each person gets one of four roles:
+
+| Role    | Can do                                                   |
+| ------- | -------------------------------------------------------- |
+| View    | Read the document                                        |
+| Comment | Read and add comments                                    |
+| Suggest | Read and edit, with every change tracked as a suggestion |
+| Edit    | Edit directly                                            |
+
+Workspace members (everyone except guests) can always edit the workspace's documents. People you share a document with individually find it under **Shared with me** in the sidebar.
+
+**Share links** carry a role and expire after 1, 7 or 30 days. The link's token is stored hashed and can be turned off at any time. When someone signs in and opens a link, they get its role until the link expires, but never a weaker role than they already had.
+
+**Public links** are for pieces marked Published. The server renders them as plain, read-only HTML at `/p/<token>`. The page runs no scripts, requires no sign-in and tells search engines not to index it. Pending suggestions and comments aren't shown. Unpublishing a piece turns its public link off.
+
+**Presence** runs over the same WebSocket as sync, using Yjs awareness, so no third-party realtime service is involved. The top bar shows who's in the document, and other people's cursors and selections appear with their names.
+
+**Enforcement is on the server.** Viewers can't change anything, and commenters can only change comment threads. The server checks every incoming update against a scratch copy of the document and closes the connection (`4403`) if the update touches anything the role doesn't allow. Suggest access is enforced by the client, which locks the editor into suggesting mode.
+
 ## Importing
 
 **Workspace and people → Import** accepts:

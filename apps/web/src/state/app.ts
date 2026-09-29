@@ -2,8 +2,10 @@ import { createId } from "@vellum/core";
 import type { Collection, DocumentMeta, User, Workspace } from "@vellum/core";
 import { create } from "zustand";
 import { IndexedDbRepository } from "../data/idb.js";
+import { setPresenceIdentity } from "../data/ydocs.js";
 import { backfill, removeFromIndex, updateIndexedTitle } from "../data/search.js";
-import type { Me } from "../data/account.js";
+import { account } from "../data/account.js";
+import type { Me, SharedDoc } from "../data/account.js";
 import type { Repository } from "../data/repository.js";
 import { adoptAccount, ensureSeeded, nextCollectionColour } from "../data/seed.js";
 
@@ -20,6 +22,9 @@ export interface AppState {
   members: Array<{ id: string; name: string }>;
   /** The signed-in server account, or null when running local-only. */
   account: Me | null;
+  /** Documents other people shared with you (not in your own workspaces). */
+  shared: SharedDoc[];
+  loadShared(): Promise<void>;
 
   init(repo?: Repository, account?: Me | null): Promise<void>;
   refresh(): Promise<void>;
@@ -46,6 +51,7 @@ const writes = new Map<string, Promise<void>>();
 export const useApp = create<AppState>((set, get) => {
   async function doInit() {
     const { user, workspace } = await ensureSeeded(get().repo, get().account ?? undefined);
+    setPresenceIdentity(user);
     set({ user, workspace, welcomeDocId: (await get().repo.getSetting<string>("welcomeDocId")) ?? null });
     await get().refresh();
     set({ ready: true });
@@ -64,6 +70,16 @@ export const useApp = create<AppState>((set, get) => {
     welcomeDocId: null,
     members: [],
     account: null,
+    shared: [],
+
+    async loadShared() {
+      if (!get().account) return;
+      try {
+        set({ shared: await account.shared() });
+      } catch {
+        /* offline: keep what we had */
+      }
+    },
 
     init(repo, account) {
       // Idempotent: React StrictMode and multiple mounts must not seed twice.
@@ -134,6 +150,9 @@ export const useApp = create<AppState>((set, get) => {
       // Publishing (or unpublishing) changes what the voice profile learns from.
       if (patch.status !== undefined && (patch.status === "published") !== (current.status === "published")) {
         void import("../data/voice.js").then((v) => v.relearnVoice());
+        // A public link is only for published pieces.
+        if (current.status === "published" && get().account)
+          void account.setPublic(id, false).catch(() => undefined);
       }
       // Persist the latest merged state, one write at a time per document.
       const prev = writes.get(id) ?? Promise.resolve();

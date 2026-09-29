@@ -73,6 +73,33 @@ const MIGRATIONS: string[] = [
      created_by TEXT NOT NULL REFERENCES users(id),
      created_at TEXT NOT NULL
    );`,
+  // 3: per-document sharing
+  `CREATE TABLE doc_shares (
+     doc_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+     role TEXT NOT NULL,
+     granted_by TEXT NOT NULL REFERENCES users(id),
+     created_at TEXT NOT NULL,
+     expires_at TEXT,
+     PRIMARY KEY (doc_id, user_id)
+   );
+   CREATE INDEX doc_shares_user ON doc_shares(user_id);
+   CREATE TABLE share_links (
+     id TEXT PRIMARY KEY,
+     doc_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+     token_hash TEXT NOT NULL UNIQUE,
+     role TEXT NOT NULL,
+     created_by TEXT NOT NULL REFERENCES users(id),
+     created_at TEXT NOT NULL,
+     expires_at TEXT NOT NULL,
+     revoked_at TEXT
+   );
+   CREATE TABLE public_links (
+     doc_id TEXT PRIMARY KEY REFERENCES documents(id) ON DELETE CASCADE,
+     token TEXT NOT NULL UNIQUE,
+     created_by TEXT NOT NULL REFERENCES users(id),
+     created_at TEXT NOT NULL
+   );`,
 ];
 
 export type Db = DatabaseSync;

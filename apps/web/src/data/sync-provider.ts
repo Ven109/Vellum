@@ -1,12 +1,15 @@
 import { sync } from "@vellum/core";
+import * as awarenessProtocol from "y-protocols/awareness";
 import * as Y from "yjs";
 
-export type ConnectionState = "connecting" | "connected" | "disconnected";
+export type ConnectionState = "connecting" | "connected" | "disconnected" | "denied";
 
 export interface SyncProviderEvents {
   /** Remote changes were merged into a document that also had local unsynced edits. */
   merged?: () => void;
   change?: () => void;
+  /** The server refused access (4401 signed out, 4403 no access or read-only). */
+  denied?: (code: number, reason: string) => void;
 }
 
 const ACK_KEY = (docId: string) => `vellum:acked:${docId}`;
@@ -34,6 +37,8 @@ export class DocSyncProvider {
   private retryTimer: ReturnType<typeof setTimeout> | undefined;
   private destroyed = false;
   private hadPendingOnConnect = false;
+  /** Why the server refused the connection, when state is "denied". */
+  denial = "";
   private readonly onOnline = () => this.connectSoon(0);
   /** The browser knows the network is gone; don't wait for the socket to time out. */
   private readonly onOffline = () => this.ws?.close();
@@ -43,7 +48,12 @@ export class DocSyncProvider {
     readonly doc: Y.Doc,
     private readonly url: string,
     private readonly events: SyncProviderEvents = {},
-    private readonly opts: { batchMs?: number; WebSocketImpl?: typeof WebSocket } = {},
+    private readonly opts: {
+      batchMs?: number;
+      WebSocketImpl?: typeof WebSocket;
+      /** Presence (cursors, who's here) shared with everyone in the document. */
+      awareness?: awarenessProtocol.Awareness;
+    } = {},
   ) {
     this.acked = loadAcked(docId);
     doc.on("update", this.onLocalUpdate);
@@ -78,6 +88,7 @@ export class DocSyncProvider {
         { send: (m) => ws.readyState === ws.OPEN && ws.send(m) },
         {
           batchMs: this.opts.batchMs ?? 400,
+          ...(this.opts.awareness ? { awareness: this.opts.awareness } : {}),
           onAck: (sv) => {
             this.acked = sv;
             try {
@@ -102,10 +113,19 @@ export class DocSyncProvider {
     ws.onmessage = (ev: MessageEvent<ArrayBuffer>) => {
       void this.session?.receive(new Uint8Array(ev.data));
     };
-    ws.onclose = () => {
+    ws.onclose = (ev: CloseEvent) => {
       this.session?.destroy();
       this.session = null;
       this.ws = null;
+      this.dropRemotePresence();
+      // 4401/4403: signed out, no access, or a change this role may not make. Retrying won't help.
+      if (ev.code === 4401 || ev.code === 4403) {
+        this.state = "denied";
+        this.denial = ev.reason;
+        this.events.change?.();
+        this.events.denied?.(ev.code, ev.reason);
+        return;
+      }
       this.state = "disconnected";
       this.events.change?.();
       this.connectSoon();
@@ -113,13 +133,28 @@ export class DocSyncProvider {
     ws.onerror = () => ws.close();
   }
 
+  /** People who were here through this connection are gone once it closes. */
+  private dropRemotePresence() {
+    const a = this.opts.awareness;
+    if (!a) return;
+    const others = [...a.getStates().keys()].filter((id) => id !== a.clientID);
+    if (others.length) awarenessProtocol.removeAwarenessStates(a, others, this);
+  }
+
   private connectSoon(delay?: number) {
-    if (this.destroyed || this.ws) return;
+    if (this.destroyed || this.ws || this.state === "denied") return;
     if (typeof navigator !== "undefined" && navigator.onLine === false) return; // resumes on "online"
 
     clearTimeout(this.retryTimer);
     const ms = delay ?? Math.min(30_000, 500 * 2 ** this.retry++) * (0.75 + Math.random() * 0.5);
     this.retryTimer = setTimeout(() => this.connect(), ms);
+  }
+
+  /** Try again after access changed (for example after opening a share link). */
+  reconnect(): void {
+    if (this.state !== "denied") return;
+    this.state = "disconnected";
+    this.connectSoon(0);
   }
 
   /** Force-send batched edits now (e.g. before the page unloads). */

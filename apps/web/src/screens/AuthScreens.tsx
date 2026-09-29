@@ -164,6 +164,12 @@ const OAUTH_ERRORS: Record<string, string> = {
   signups_disabled: "There's no account for that address, and sign-up is invite-only here.",
 };
 
+/** Where to go after signing in: the page that asked for it (e.g. a document link), else the library. */
+function returnPath(): string {
+  const here = window.location.pathname + window.location.search;
+  return here.startsWith("/d/") ? here : "/library";
+}
+
 export function SignInScreen() {
   const signedIn = useAuth((s) => s.signedIn);
   const instance = useAuth((s) => s.instance);
@@ -183,7 +189,7 @@ export function SignInScreen() {
         className="vl-auth-form"
         onSubmit={run(async () => {
           await signedIn(await account.login({ email, password }));
-          navigate("/library", { replace: true });
+          navigate(returnPath(), { replace: true });
         })}
       >
         <Field label="Email" type="email" value={email} onChange={setEmail} autoComplete="email" autoFocus />
@@ -464,6 +470,69 @@ export function InviteScreen({ token }: { token: string }) {
       ) : (
         <InlineSignIn />
       )}
+    </AuthShell>
+  );
+}
+
+const ROLE_PHRASE: Record<string, string> = {
+  view: "view",
+  comment: "view and comment on",
+  suggest: "suggest edits to",
+  edit: "edit",
+};
+
+/** Landing page for a share link: shows what was shared, then opens it with the link's role. */
+export function ShareLinkScreen({ token }: { token: string }) {
+  const status = useAuth((s) => s.status);
+  const [info, setInfo] = useState<Awaited<ReturnType<typeof account.linkInfo>> | null>(null);
+  const [missing, setMissing] = useState(false);
+  const { busy, error, run } = useSubmit();
+
+  useEffect(() => {
+    account.linkInfo(token).then(setInfo, () => setMissing(true));
+  }, [token]);
+
+  if (missing) {
+    return <AuthShell title="This link has expired" lede="Ask the person who shared it for a new one." />;
+  }
+  if (!info)
+    return (
+      <div className="vl-loading" aria-busy="true">
+        Loading…
+      </div>
+    );
+
+  const lede = (
+    <>
+      {info.sharedBy} shared <strong>{info.title}</strong> with you. You can {ROLE_PHRASE[info.role]} it until{" "}
+      {new Date(info.expiresAt).toLocaleDateString()}.
+    </>
+  );
+
+  if (status !== "signed-in") {
+    return (
+      <AuthShell title="Sign in to open" lede={lede}>
+        <InlineSignIn />
+      </AuthShell>
+    );
+  }
+
+  return (
+    <AuthShell title={info.title} lede={lede}>
+      <form
+        className="vl-auth-form"
+        onSubmit={run(async () => {
+          const opened = await account.openLink(token);
+          const { useApp } = await import("../state/app.js");
+          await useApp.getState().loadShared();
+          navigate(`/d/${encodeURIComponent(opened.documentId)}`, { replace: true });
+        })}
+      >
+        <ErrorLine error={error} />
+        <button className="vl-btn vl-btn-primary" disabled={busy}>
+          Open document
+        </button>
+      </form>
     </AuthShell>
   );
 }
