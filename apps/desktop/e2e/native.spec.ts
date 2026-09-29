@@ -127,15 +127,23 @@ test("windows come back where you left them", async () => {
     history.pushState(null, "", "/insights");
     dispatchEvent(new PopStateEvent("popstate"));
   });
-  await app.evaluate(({ BrowserWindow }) =>
-    BrowserWindow.getAllWindows()[0]!.setBounds({ x: 40, y: 30, width: 1010, height: 700 }),
-  );
+  // A size that fits whatever screen the test runs on (CI displays are small), and not the default.
+  const set = await app.evaluate(({ BrowserWindow, screen }) => {
+    const area = screen.getPrimaryDisplay().workArea;
+    const win = BrowserWindow.getAllWindows()[0]!;
+    win.setBounds({
+      x: area.x + 30,
+      y: area.y + 20,
+      width: Math.min(900, area.width - 60),
+      height: Math.min(560, area.height - 40),
+    });
+    return win.getBounds();
+  });
   await page.waitForTimeout(200);
   await app.close();
   await launch();
   const bounds = await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]!.getBounds());
-  expect(bounds.width).toBe(1010);
-  expect(bounds.height).toBe(700);
+  expect(bounds).toEqual(set);
   await expect(page).toHaveURL(/\/insights$/);
 });
 
