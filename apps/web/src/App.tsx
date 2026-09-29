@@ -9,6 +9,7 @@ import { EditorScreen } from "./screens/EditorScreen.js";
 import { EditorSettingsPage } from "./screens/EditorSettings.js";
 import { ExportSettingsPage } from "./screens/ExportSettings.js";
 import { ShortcutSettingsPage } from "./screens/ShortcutSettings.js";
+import { UpdateSettingsPage } from "./screens/UpdateSettings.js";
 import { HistoryScreen } from "./screens/HistoryScreen.js";
 import { InsightsScreen } from "./screens/InsightsScreen.js";
 import { LibraryScreen } from "./screens/LibraryScreen.js";
@@ -27,6 +28,8 @@ import { WorkspaceSettingsPage } from "./screens/WorkspaceSettings.js";
 import { useApp } from "./state/app.js";
 import { useAuth } from "./state/auth.js";
 import { useFocus } from "./state/focus.js";
+import { ImportDrop } from "./components/ImportDrop.js";
+import { useDesktopIntegration } from "./data/desktop.js";
 import { FONT_STACK, MEASURE, usePreferences } from "./state/preferences.js";
 import { navigate, useRoute } from "./state/router.js";
 
@@ -72,6 +75,7 @@ function Workspace({ leaveAuthPath }: { leaveAuthPath: boolean }) {
   const init = useApp((s) => s.init);
   const focus = useFocus((s) => s.active);
   const prefs = usePreferences((s) => s.prefs);
+  useDesktopIntegration(ready);
   useEffect(() => {
     if (ready) void usePreferences.getState().load();
   }, [ready]);
@@ -108,6 +112,7 @@ function Workspace({ leaveAuthPath }: { leaveAuthPath: boolean }) {
       <Sidebar />
       <Screen />
       <CommandPalette />
+      <ImportDrop />
     </div>
   );
 }
@@ -123,6 +128,7 @@ function Screen() {
   if (route.name === "screen" && route.path === "/settings/editor") return <EditorSettingsPage />;
   if (route.name === "screen" && route.path === "/settings/shortcuts") return <ShortcutSettingsPage />;
   if (route.name === "screen" && route.path === "/settings/export") return <ExportSettingsPage />;
+  if (route.name === "screen" && route.path === "/settings/updates") return <UpdateSettingsPage />;
   if (route.name === "screen" && route.path === "/settings/voice") return <VoiceSettingsPage />;
   if (route.name === "screen" && route.path === "/settings/workspace") return <WorkspaceSettingsPage />;
   if (route.name === "screen" && route.path === "/insights") return <InsightsScreen />;

@@ -1,5 +1,6 @@
 import { docToMarkdown } from "@vellum/editor";
 import {
+  AppWindow,
   BookmarkPlus,
   Columns2,
   FilePlus2,
@@ -138,6 +139,18 @@ export function CoreCommands() {
             "named",
             name,
           );
+        },
+      },
+      {
+        id: "window.openDoc",
+        title: "Open in a new window",
+        section: "View",
+        keywords: ["window", "desktop"],
+        icon: <AppWindow size={15} />,
+        when: () => currentRoute().name === "doc" && !!window.vellumDesktop?.openWindow,
+        run: () => {
+          const r = currentRoute();
+          if (r.name === "doc") void window.vellumDesktop?.openWindow?.(docPath(r.id));
         },
       },
       {

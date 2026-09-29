@@ -27,6 +27,40 @@ To sync with a Vellum server, open **Settings → Profile → Sync with a Vellum
 
 To go back to working only on this device, choose **Disconnect**.
 
+## Working with the system
+
+- **Menus.** File (New Draft ⌘N, New Window ⇧⌘N, Import… ⌘O), Edit, View (Command Palette ⌘K,
+  Focus Mode ⇧⌘F, Library ⌘1, Settings ⌘,, zoom, full screen), Window and Help (docs, report an issue,
+  Check for Updates…). On Windows and Linux ⌘ is Ctrl.
+- **New draft from anywhere.** Ctrl+Alt+N (⌘⌥N on macOS) works even when Vellum isn't in front, and the
+  dock menu (macOS) or tray icon (Windows, Linux) has New Draft, New Window and Show Vellum.
+- **Windows.** Each document opens in at most one window: opening it again (from a link, the palette's
+  "Open in a new window", or another window) brings that window forward. Open windows, their size,
+  position and document come back the next time you start Vellum.
+- **Links.** `vellum://d/<document id>` opens a document, `vellum://new` starts a draft. The app registers
+  the `vellum` scheme when installed; only one copy of Vellum runs, and later launches hand their link or
+  files to it.
+- **Files.** Open Markdown files with Vellum (it registers `.md` and `.markdown`), drop Markdown, text,
+  HTML, `.docx` or a Notion/Google Docs export `.zip` on any window, or use File → Import…. You always
+  get to review what will be imported first.
+- **Closing with unsaved changes.** If a save is still in flight, Vellum waits a moment for it; if it
+  still hasn't finished it asks before closing.
+
+## Updates
+
+Packaged builds update themselves from GitHub Releases with `electron-updater`: they check 15 seconds
+after starting and every six hours, download in the background, and install on the next restart (or
+straight away with **Restart to update** in Settings → App updates). There you can turn automatic
+updates off and choose the channel: **Stable** gets releases, **Beta** also gets pre-releases.
+
+Administrators can turn updates off for an installation, which also hides the switch:
+
+- set `VELLUM_DISABLE_UPDATES=1` in the environment, or
+- put an `update-policy.json` containing `{"disabled": true}` in the app's resources folder
+  (`Vellum.app/Contents/Resources` on macOS, next to `app.asar` on Windows and Linux).
+
+Development builds never update.
+
 ## Building
 
 ```sh

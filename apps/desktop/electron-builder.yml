@@ -12,8 +12,21 @@ extraResources:
   - from: ../web/dist
     to: web
     filter: ["**/*", "!**/*.map"]
+  # The tray icon on Windows and Linux.
+  - from: build/icon.png
+    to: icon.png
 asar: true
 artifactName: "Vellum-${version}-${os}-${arch}.${ext}"
+# vellum://d/<id> links open documents; Markdown files open as imports.
+protocols:
+  - name: Vellum
+    schemes: [vellum]
+fileAssociations:
+  - ext: [md, markdown]
+    name: Markdown
+    description: Markdown document
+    role: Viewer
+    mimeType: text/markdown
 electronLanguages: [en-US, en-GB, de, fr, es, it, pt-BR, nl, sv, ja, zh-CN]
 mac:
   category: public.app-category.productivity

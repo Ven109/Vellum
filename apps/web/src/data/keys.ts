@@ -33,9 +33,45 @@ export interface DesktopSecretsBridge {
   isEncryptionAvailable(): Promise<boolean>;
 }
 
+/** Commands from the desktop app's menus, tray, global shortcut and deep links. */
+export type DesktopCommand =
+  { type: "new-draft" } | { type: "navigate"; path: string } | { type: "toggle-focus" } | { type: "palette" };
+
+export interface DesktopUpdateSettings {
+  autoUpdate: boolean;
+  channel: "latest" | "beta";
+  /** Set by the administrator (VELLUM_DISABLE_UPDATES or update-policy.json): updates are off. */
+  managed: boolean;
+}
+
+export interface DesktopUpdateStatus {
+  state: "idle" | "checking" | "available" | "downloading" | "ready" | "none" | "error" | "disabled";
+  version?: string;
+  message?: string;
+}
+
+/** The whole bridge exposed by apps/desktop's preload script. */
+export interface DesktopBridge {
+  platform: string;
+  secrets?: DesktopSecretsBridge;
+  openWindow?(path: string): Promise<void>;
+  setCurrentPath?(path: string): void;
+  onCommand?(fn: (command: DesktopCommand) => void): () => void;
+  onImportFiles?(fn: (files: Array<{ path: string; data: Uint8Array }>) => void): () => void;
+  updates?: {
+    getSettings(): Promise<DesktopUpdateSettings>;
+    setSettings(
+      patch: Partial<Pick<DesktopUpdateSettings, "autoUpdate" | "channel">>,
+    ): Promise<DesktopUpdateSettings>;
+    check(): Promise<void>;
+    install(): Promise<void>;
+    onStatus(fn: (status: DesktopUpdateStatus) => void): () => void;
+  };
+}
+
 declare global {
   interface Window {
-    vellumDesktop?: { secrets?: DesktopSecretsBridge };
+    vellumDesktop?: DesktopBridge;
   }
 }
 

@@ -1,10 +1,16 @@
 import type { ReactNode } from "react";
 import { navigate, usePathname } from "../state/router.js";
 
-export const SETTINGS_SECTIONS: Array<{ path: string; label: string; group: "Account" | "Workspace" }> = [
+export const SETTINGS_SECTIONS: Array<{
+  path: string;
+  label: string;
+  group: "Account" | "Workspace";
+  desktopOnly?: boolean;
+}> = [
   { path: "/settings/account", label: "Profile", group: "Account" },
   { path: "/settings/editor", label: "Editor", group: "Account" },
   { path: "/settings/shortcuts", label: "Keyboard shortcuts", group: "Account" },
+  { path: "/settings/updates", label: "App updates", group: "Account", desktopOnly: true },
   { path: "/settings/workspace", label: "Workspace and people", group: "Workspace" },
   { path: "/settings/voice", label: "Voice and style", group: "Workspace" },
   { path: "/settings/ai", label: "AI provider", group: "Workspace" },
@@ -24,7 +30,9 @@ export function SettingsLayout({ title, children }: { title: string; children: R
               <div key={g}>
                 <h2 className="vl-nav-heading">{g}</h2>
                 <ul>
-                  {SETTINGS_SECTIONS.filter((s) => s.group === g).map((s) => (
+                  {SETTINGS_SECTIONS.filter(
+                    (s) => s.group === g && (!s.desktopOnly || window.vellumDesktop),
+                  ).map((s) => (
                     <li key={s.path}>
                       <a
                         href={s.path}
