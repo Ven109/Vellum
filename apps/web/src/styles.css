@@ -720,9 +720,10 @@ kbd {
 
 @media (max-width: 1100px) {
   .vl-app {
-    grid-template-columns: 220px minmax(0, 1fr);
+    grid-template-columns: 220px minmax(0, 1fr) auto;
   }
-  .vl-rail {
+  /* The outline rail folds away; the assistant and review panels still open on demand. */
+  .vl-rail:not(.vl-assistant, .vl-review) {
     display: none;
   }
 }
@@ -3235,4 +3236,282 @@ del.vl-sug-del,
 .vl-modal h2 {
   margin: 0 0 12px;
   font-size: 18px;
+}
+
+/* Phones ---------------------------------------------------------------------------------------------- */
+.vl-menu-btn,
+.vl-mobile-bar,
+.vl-more-wrap,
+.vl-nav-backdrop {
+  display: none;
+}
+
+.vl-more-wrap {
+  position: relative;
+}
+
+.vl-more-menu {
+  left: auto;
+  right: 0;
+  min-width: 190px;
+}
+
+.vl-mode-wrap {
+  display: contents;
+}
+
+.vl-more-mode {
+  padding: 4px;
+}
+
+.vl-more-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .vl-app {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .vl-app > .vl-main {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .vl-menu-btn,
+  .vl-more-wrap {
+    display: inline-grid;
+  }
+
+  .vl-wide-only {
+    display: none;
+  }
+
+  /* Navigation lives in a drawer. */
+  .vl-sidebar {
+    position: fixed;
+    z-index: 80;
+    inset: 0 auto 0 0;
+    width: min(300px, 86vw);
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition:
+      transform 0.2s ease,
+      visibility 0.2s;
+    padding-top: max(12px, env(safe-area-inset-top));
+  }
+
+  .vl-app[data-nav-open] .vl-sidebar {
+    transform: none;
+    visibility: visible;
+    box-shadow: var(--shadow);
+  }
+
+  .vl-nav-backdrop {
+    display: block;
+    position: fixed;
+    z-index: 79;
+    inset: 0;
+    background: rgb(0 0 0 / 0.32);
+  }
+
+  .vl-sidebar a,
+  .vl-sidebar button {
+    min-height: 44px;
+  }
+
+  .vl-mobile-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 52px;
+    padding: 0 8px;
+    padding-top: env(safe-area-inset-top);
+    border-bottom: 1px solid var(--line);
+    flex: none;
+  }
+
+  .vl-mobile-brand {
+    font-family: var(--serif);
+    font-size: 18px;
+  }
+
+  /* Compact top bar: menu, save state, word count and the essentials. */
+  .vl-topbar {
+    gap: 4px;
+    padding: 0 4px 0 4px;
+    padding-top: env(safe-area-inset-top);
+    height: auto;
+    min-height: 52px;
+  }
+
+  .vl-breadcrumb,
+  .vl-topbar .vl-avatars,
+  .vl-topbar .vl-readtime,
+  .vl-topbar .vl-btn-label {
+    display: none;
+  }
+
+  .vl-topbar-right {
+    flex: 1;
+    gap: 2px;
+  }
+
+  .vl-topbar .vl-save {
+    margin-right: auto;
+    padding-left: 4px;
+  }
+
+  .vl-topbar .vl-icon-btn,
+  .vl-topbar .vl-btn,
+  .vl-mobile-bar .vl-icon-btn,
+  .vl-topbar .vl-wordcount {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .vl-topbar .vl-btn {
+    justify-content: center;
+    padding: 0 10px;
+  }
+
+  /* The document uses the whole width, with room below for the formatting bar and keyboard. */
+  .vl-column {
+    max-width: none;
+    padding: 20px 20px calc(96px + var(--kb-inset, 0px));
+  }
+
+  .vl-title {
+    font-size: 28px;
+  }
+
+  .vl-prose {
+    font-size: 18px;
+  }
+
+  /* Library: title and status only; the tabs scroll sideways. */
+  .vl-library-table th:nth-child(3),
+  .vl-library-table td:nth-child(3),
+  .vl-library-table th:nth-child(5),
+  .vl-library-table td:nth-child(5),
+  .vl-library-table th:nth-child(6),
+  .vl-library-table td:nth-child(6) {
+    display: none;
+  }
+
+  .vl-tabs {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .vl-tabs > * {
+    flex: none;
+    white-space: nowrap;
+  }
+
+  /* The floating selection bubble gives way to the docked bar. */
+  .vl-bubble {
+    display: none;
+  }
+
+  /* Side panels open as full-screen sheets. */
+  .vl-assistant,
+  .vl-review {
+    position: fixed;
+    z-index: 70;
+    inset: 0 0 var(--kb-inset, 0px) 0;
+    width: auto;
+    border-left: 0;
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .vl-assistant-head .vl-icon-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .vl-popover {
+    position: fixed;
+    top: 60px;
+    left: 12px;
+    right: 12px;
+    min-width: 0;
+  }
+
+  .vl-share {
+    position: fixed;
+    top: 60px;
+    left: 8px;
+    right: 8px;
+    width: auto;
+    max-height: calc(100dvh - 76px);
+    overflow: auto;
+  }
+
+  /* A pending rewrite docks above the keyboard and the formatting bar. */
+  .vl-proposal-docked {
+    position: fixed;
+    z-index: 60;
+    left: 8px;
+    right: 8px;
+    bottom: calc(var(--kb-inset, 0px) + 60px + env(safe-area-inset-bottom));
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+
+  .vl-proposal-docked .vl-btn {
+    min-height: 44px;
+  }
+
+  .vl-proposal-docked .vl-proposal-label {
+    flex-basis: 100%;
+  }
+}
+
+.vl-mobile-toolbar {
+  position: fixed;
+  z-index: 55;
+  left: 0;
+  right: 0;
+  bottom: var(--kb-inset, 0px);
+  display: flex;
+  align-items: center;
+  border-top: 1px solid var(--line);
+  background: var(--paper);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+:root[data-keyboard] .vl-mobile-toolbar {
+  padding-bottom: 0;
+}
+
+.vl-mobile-toolbar-scroll {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.vl-mobile-toolbar button {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  min-width: 48px;
+  min-height: 48px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-2);
+}
+
+.vl-mobile-toolbar button[aria-pressed="true"] {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.vl-mobile-toolbar-done {
+  border-left: 1px solid var(--line) !important;
 }

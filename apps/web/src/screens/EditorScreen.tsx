@@ -22,6 +22,8 @@ import { displayTitle } from "../components/Sidebar.js";
 import { useApp } from "../state/app.js";
 import { docPath, navigate } from "../state/router.js";
 import { useDocSession } from "../state/session.js";
+import { MobileToolbar } from "../editor/MobileToolbar.js";
+import { useIsMobile } from "../state/mobile.js";
 
 function useLiveDoc(id: string, primary = true): LiveDoc | null {
   const [live, setLive] = useState<LiveDoc | null>(null);
@@ -214,6 +216,8 @@ export function EditorScreen({ docId, splitId }: { docId: string; splitId?: stri
   const focus = useFocus((s) => s.active);
   const inlineProposals = useApp((s) => s.workspace?.settings.behaviour.inlineSuggestions ?? true);
   const dimming = useFocus((s) => s.dimming);
+  const mobile = useIsMobile();
+  const editor = useDocSession((s) => s.editor);
   // Leaving the document leaves focus mode.
   useEffect(() => () => useFocus.getState().exit(), [docId]);
 
@@ -268,6 +272,7 @@ export function EditorScreen({ docId, splitId }: { docId: string; splitId?: stri
           <DocumentPane docId={docId} primary meta={meta} />
         </div>
         {focus && <FocusHud />}
+        {mobile && editor && !focus && <MobileToolbar editor={editor} />}
       </main>
       <ErrorBoundary label="the side panel">
         {assistantOpen ? <AssistantPanel /> : focus ? null : reviewOpen ? <ReviewPanel /> : <RightRail />}

@@ -5,6 +5,7 @@ import { Check, RotateCcw, Square, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useDocSession } from "../state/session.js";
 import { useRewrite } from "../state/rewrite.js";
+import { useIsMobile } from "../state/mobile.js";
 
 /** Floating card under a proposed rewrite: Accept / Try again / Discard, the word delta, and Stop. */
 export function ProposalCard() {
@@ -12,6 +13,7 @@ export function ProposalCard() {
   const { active, streaming, error, model, instruction, appliedRules, accept, tryAgain, discard, stop } =
     useRewrite();
   const [, force] = useState(0);
+  const mobile = useIsMobile();
 
   useEffect(() => {
     if (!editor) return;
@@ -42,7 +44,11 @@ export function ProposalCard() {
 
   if (error) {
     return (
-      <div className="vl-proposal-card" role="alert" style={{ position: "fixed", right: 24, bottom: 24 }}>
+      <div
+        className={`vl-proposal-card${mobile ? " vl-proposal-docked" : ""}`}
+        role="alert"
+        style={mobile ? undefined : { position: "fixed", right: 24, bottom: 24 }}
+      >
         <span>{error}</span>
         {!error.startsWith("Add an AI provider") && (
           <button className="vl-btn" onClick={() => void tryAgain()}>
@@ -64,14 +70,19 @@ export function ProposalCard() {
 
   return (
     <div
-      className="vl-proposal-card"
+      className={`vl-proposal-card${mobile ? " vl-proposal-docked" : ""}`}
       role="dialog"
       aria-label="Proposed rewrite"
-      style={{
-        position: "fixed",
-        top: Math.min(window.innerHeight - 64, coords.bottom + 10),
-        left: Math.max(16, coords.left - 160),
-      }}
+      // On phones the card docks above the keyboard and formatting bar instead of following the text.
+      style={
+        mobile
+          ? undefined
+          : {
+              position: "fixed",
+              top: Math.min(window.innerHeight - 64, coords.bottom + 10),
+              left: Math.max(16, coords.left - 160),
+            }
+      }
     >
       <span className="vl-proposal-label" title={instruction}>
         {streaming ? "Writing…" : "Proposed rewrite"}

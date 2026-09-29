@@ -263,7 +263,7 @@ export function LibraryScreen() {
                 : "No documents here yet."}
           </p>
         ) : (
-          <table className="vl-table">
+          <table className="vl-table vl-library-table">
             <thead>
               <tr>
                 <th className="vl-col-check">

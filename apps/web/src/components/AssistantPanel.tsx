@@ -2,6 +2,7 @@ import { QUICK_ACTIONS, formatTokens, formatUsd } from "@vellum/ai";
 import { useUsage } from "../data/usage.js";
 import { RulesApplied } from "./RulesApplied.js";
 import { useRewrite } from "../state/rewrite.js";
+import { isMobile } from "../state/mobile.js";
 import { countWords } from "@vellum/core";
 import { AlertTriangle, ArrowUp, KeyRound, RotateCcw, Sparkles, Square, Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -11,6 +12,12 @@ import type { ThreadMessage } from "../state/assistant.js";
 import { useProviders } from "../state/providers.js";
 import { navigate } from "../state/router.js";
 import { useDocSession } from "../state/session.js";
+
+/** Rewrite the selection. On phones the panel is a full-screen sheet, so step aside to show the text. */
+function rewrite(instruction: string) {
+  if (isMobile()) useAssistant.getState().setOpen(false);
+  return useRewrite.getState().request(instruction);
+}
 
 function useSelectionWords(): number {
   const editor = useDocSession((s) => s.editor);
@@ -201,7 +208,7 @@ export function AssistantPanel() {
                 className="vl-pill"
                 disabled={busy || rewriting || selWords === 0}
                 title={selWords === 0 ? "Select a passage first" : a.instruction}
-                onClick={() => void useRewrite.getState().request(a.instruction)}
+                onClick={() => void rewrite(a.instruction)}
               >
                 {a.label}
               </button>
@@ -277,7 +284,7 @@ export function AssistantPanel() {
                       className="vl-btn"
                       disabled={!text.trim() || rewriting}
                       onClick={() => {
-                        void useRewrite.getState().request(text.trim());
+                        void rewrite(text.trim());
                         setText("");
                       }}
                     >

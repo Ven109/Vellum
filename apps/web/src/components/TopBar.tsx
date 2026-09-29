@@ -7,6 +7,7 @@ import {
   Loader2,
   Maximize2,
   MessagesSquare,
+  MoreHorizontal,
   Share2,
   Sparkles,
   TriangleAlert,
@@ -24,6 +25,7 @@ import { useState } from "react";
 import { useApp } from "../state/app.js";
 import { useDocSession } from "../state/session.js";
 import { displayTitle } from "./Sidebar.js";
+import { MenuButton } from "./MobileNav.js";
 
 const SAVE_LABEL = {
   saved: { text: "Saved", icon: <Check size={14} />, hint: "All changes saved." },
@@ -52,6 +54,7 @@ export function TopBar({ doc }: { doc: DocumentMeta }) {
   const [statsOpen, setStatsOpen] = useState(false);
   const saveState = useDocSession((s) => s.saveState);
   const [shareOpen, setShareOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const awareness = useDocSession((s) => s.awareness);
   const peers = usePeers(awareness, user?.id);
   const role = useSuggestions((s) => s.role);
@@ -64,6 +67,7 @@ export function TopBar({ doc }: { doc: DocumentMeta }) {
 
   return (
     <header className="vl-topbar">
+      <MenuButton />
       <nav aria-label="Breadcrumb" className="vl-breadcrumb">
         <span>{collection?.name ?? "Unfiled"}</span>
         <span aria-hidden>/</span>
@@ -76,7 +80,9 @@ export function TopBar({ doc }: { doc: DocumentMeta }) {
           {save.icon}
           {save.text}
         </span>
-        <ModeSwitch />
+        <span className="vl-wide-only vl-mode-wrap">
+          <ModeSwitch />
+        </span>
         <div className="vl-stats-wrap">
           <button
             className="vl-wordcount"
@@ -155,8 +161,48 @@ export function TopBar({ doc }: { doc: DocumentMeta }) {
         >
           <Sparkles size={14} /> <span className="vl-btn-label">Assistant</span>
         </button>
+        <div className="vl-more-wrap">
+          <button
+            className="vl-icon-btn"
+            aria-label="More"
+            aria-haspopup="menu"
+            aria-expanded={moreOpen}
+            onClick={() => setMoreOpen((o) => !o)}
+          >
+            <MoreHorizontal size={18} />
+          </button>
+          {moreOpen && (
+            <ul role="menu" className="vl-menu vl-more-menu">
+              <li role="none" className="vl-more-mode">
+                <ModeSwitch />
+              </li>
+              <li role="none">
+                <button
+                  role="menuitem"
+                  onClick={() => {
+                    setMoreOpen(false);
+                    navigate(historyPath(doc.id));
+                  }}
+                >
+                  <History size={15} /> Version history
+                </button>
+              </li>
+              <li role="none">
+                <button
+                  role="menuitem"
+                  onClick={() => {
+                    setMoreOpen(false);
+                    toggleFocus();
+                  }}
+                >
+                  <Maximize2 size={15} /> Focus mode
+                </button>
+              </li>
+            </ul>
+          )}
+        </div>
         <button
-          className="vl-icon-btn"
+          className="vl-icon-btn vl-wide-only"
           aria-label="Version history"
           title="Version history"
           onClick={() => navigate(historyPath(doc.id))}
@@ -164,7 +210,7 @@ export function TopBar({ doc }: { doc: DocumentMeta }) {
           <History size={15} />
         </button>
         <button
-          className="vl-icon-btn"
+          className="vl-icon-btn vl-wide-only"
           aria-label="Focus mode"
           title="Focus mode (Ctrl/⌘ Shift F)"
           onClick={toggleFocus}
