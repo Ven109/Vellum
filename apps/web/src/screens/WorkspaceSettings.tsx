@@ -5,6 +5,7 @@ import type { Member, PendingInvite, WorkspaceRole } from "../data/account.js";
 import { useApp } from "../state/app.js";
 import { useAuth } from "../state/auth.js";
 import { ImportCard } from "./ImportCard.js";
+import { loadRetention, setRetention } from "../data/versions.js";
 
 const ROLES: WorkspaceRole[] = ["owner", "admin", "member", "guest"];
 const ROLE_NAMES: Record<WorkspaceRole, string> = {
@@ -296,6 +297,92 @@ function AdminCard() {
   );
 }
 
+function HistoryCard() {
+  const workspace = useApp((s) => s.workspace);
+  const me = useAuth((s) => s.me);
+  const policy = workspace?.settings.retention;
+  const [keepAll, setKeepAll] = useState(String(policy?.keepAllForDays ?? 7));
+  const [keepDaily, setKeepDaily] = useState(String(policy?.keepDailyForDays ?? 90));
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const role = me?.workspaces.find((w) => w.id === workspace?.id)?.role;
+  const canChange = !role || role === "owner" || role === "admin";
+
+  useEffect(() => {
+    void loadRetention();
+  }, [workspace?.id]);
+  useEffect(() => {
+    setKeepAll(String(policy?.keepAllForDays ?? 7));
+    setKeepDaily(String(policy?.keepDailyForDays ?? 90));
+  }, [policy?.keepAllForDays, policy?.keepDailyForDays]);
+
+  return (
+    <section className="vl-card" aria-labelledby="history-h">
+      <h2 id="history-h">Version history</h2>
+      <p className="vl-muted">
+        Vellum saves a version every few minutes while you write and at moments that matter. Older versions
+        are thinned out; versions you name are always kept.
+      </p>
+      <form
+        className="vl-retention"
+        onSubmit={(e) => {
+          e.preventDefault();
+          setSaved(false);
+          setError(null);
+          setRetention({
+            keepAllForDays: Number(keepAll),
+            keepDailyForDays: Number(keepDaily),
+            keepNamed: true,
+          }).then(
+            () => setSaved(true),
+            (err: unknown) => setError(errorText(err)),
+          );
+        }}
+      >
+        <label>
+          Keep every version for
+          <input
+            className="vl-input"
+            type="number"
+            min={1}
+            max={3650}
+            required
+            disabled={!canChange}
+            value={keepAll}
+            onChange={(e) => setKeepAll(e.target.value)}
+          />
+          days
+        </label>
+        <label>
+          then one a day for
+          <input
+            className="vl-input"
+            type="number"
+            min={0}
+            max={3650}
+            required
+            disabled={!canChange}
+            value={keepDaily}
+            onChange={(e) => setKeepDaily(e.target.value)}
+          />
+          more days
+        </label>
+        {canChange && <button className="vl-btn">Save</button>}
+        {saved && (
+          <span className="vl-muted" role="status">
+            Saved
+          </span>
+        )}
+      </form>
+      {error && (
+        <p className="vl-auth-error" role="alert">
+          {error}
+        </p>
+      )}
+    </section>
+  );
+}
+
 export function WorkspaceSettingsPage() {
   const status = useAuth((s) => s.status);
   const me = useAuth((s) => s.me);
@@ -335,6 +422,7 @@ export function WorkspaceSettingsPage() {
               {me.user.isAdmin && <AdminCard />}
             </>
           )}
+          <HistoryCard />
           <ImportCard />
         </div>
       </div>

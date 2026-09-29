@@ -13,6 +13,8 @@ import { useSuggestionsBinding } from "../state/suggestions.js";
 import { useDocSession } from "../state/session.js";
 import type { HeadingEntry } from "../state/session.js";
 import { SelectionToolbar } from "./SelectionToolbar.js";
+import { useSnapshots } from "./useSnapshots.js";
+import type { LiveDoc } from "../data/ydocs.js";
 import { Extension } from "@tiptap/core";
 import type { Editor } from "@tiptap/core";
 
@@ -21,6 +23,8 @@ interface Props {
   ydoc: Y.Doc;
   /** Presence: shows other people's cursors and selections. */
   awareness?: Awareness;
+  /** The live document, for history snapshots after merges. */
+  live?: LiveDoc;
   /** Markdown to seed an empty document with (used for the welcome draft). */
   initialMarkdown?: string;
   /** The primary editor drives the top bar and right rail; a split pane does not. */
@@ -46,7 +50,7 @@ function presenceExtension(awareness: Awareness) {
   });
 }
 
-export function DocumentEditor({ docId, ydoc, awareness, initialMarkdown, primary = true }: Props) {
+export function DocumentEditor({ docId, ydoc, awareness, live, initialMarkdown, primary = true }: Props) {
   const updateDocument = useApp((s) => s.updateDocument);
   const metaTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
@@ -113,6 +117,7 @@ export function DocumentEditor({ docId, ydoc, awareness, initialMarkdown, primar
 
   useCommentsBinding(editor, ydoc, primary);
   useSuggestionsBinding(editor, primary);
+  useSnapshots(editor, docId, live ?? null, primary);
 
   return (
     <>

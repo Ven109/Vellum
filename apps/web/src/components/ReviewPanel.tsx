@@ -5,7 +5,7 @@ import { docToMarkdown } from "@vellum/editor";
 import { useApp } from "../state/app.js";
 import { useComments } from "../state/comments.js";
 import { useDocSession } from "../state/session.js";
-import { canEdit, useSuggestions } from "../state/suggestions.js";
+import { acceptWithHistory, canEdit, useSuggestions } from "../state/suggestions.js";
 import { create } from "zustand";
 import { ThreadCard } from "./Comments.js";
 import { SuggestionCard } from "./SuggestionsList.js";
@@ -133,10 +133,7 @@ export function ReviewPanel() {
             <>
               {canEdit(role) && editor && (
                 <div className="vl-actions vl-bulk-sug">
-                  <button
-                    className="vl-btn"
-                    onClick={() => editor.commands.acceptSuggestions(suggestions.map((s) => s.id))}
-                  >
+                  <button className="vl-btn" onClick={() => acceptWithHistory(editor, suggestions)}>
                     Accept all
                   </button>
                   <button
