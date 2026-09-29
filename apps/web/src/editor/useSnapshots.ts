@@ -1,8 +1,10 @@
 import type { Editor } from "@tiptap/core";
-import { ySyncPluginKey } from "@tiptap/y-tiptap";
+import { yXmlFragmentToProseMirrorRootNode, ySyncPluginKey } from "@tiptap/y-tiptap";
+import * as Y from "yjs";
 import { docToMarkdown } from "@vellum/editor";
 import { useEffect } from "react";
 import { recordVersion } from "../data/versions.js";
+import { contentOf } from "../data/ydocs.js";
 import type { LiveDoc } from "../data/ydocs.js";
 import { useApp } from "../state/app.js";
 
@@ -64,10 +66,28 @@ export function useSnapshots(editor: Editor | null, docId: string, live: LiveDoc
       status = next;
     });
 
-    const unsubMerged = live?.onMerged(() => {
+    const unsubMerged = live?.onMerged((before) => {
+      const user = useApp.getState().user;
+      const merged = docToMarkdown(editor.state.doc);
+      // Keep what this device had before the merge as a named version, so offline work is never lost
+      // even if the automatic merge interleaved it with someone else's changes.
+      if (before.length && user) {
+        const snapshot = new Y.Doc();
+        Y.applyUpdate(snapshot, before);
+        const offline = docToMarkdown(yXmlFragmentToProseMirrorRootNode(contentOf(snapshot), editor.schema));
+        snapshot.destroy();
+        if (offline !== merged)
+          void recordVersion(
+            docId,
+            offline,
+            { kind: "user", userId: user.id },
+            "sync-conflict",
+            "Your offline edits, before merging",
+          ).catch(() => undefined);
+      }
       void recordVersion(
         docId,
-        docToMarkdown(editor.state.doc),
+        merged,
         { kind: "system", reason: "Merged edits made elsewhere while offline" },
         "sync-conflict",
       ).catch(() => undefined);

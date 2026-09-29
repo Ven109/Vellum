@@ -146,6 +146,14 @@ export function sharingPlugin(app: FastifyInstance, deps: Deps): void {
     return { documentId: r.docId, workspaceId: r.workspaceId, role: r.role, title: titleOf(r.docId) };
   });
 
+  // Every document registered to a workspace, so a new device can list (and then sync) them.
+  app.get<{ Params: { id: string } }>("/api/workspaces/:id/documents", async (req) => {
+    const user = requireUser(req);
+    const role = accounts.roleIn(req.params.id, user.id);
+    if (!role || role === "guest") throw new AuthError(403, "forbidden", "You don't have access to that.");
+    return accounts.workspaceDocuments(req.params.id).map((d) => ({ ...d, title: titleOf(d.id) }));
+  });
+
   app.get("/api/shared", async (req) => {
     const user = requireUser(req);
     return sharing.sharedWith(user.id).map((s) => ({ ...s, title: titleOf(s.docId) }));

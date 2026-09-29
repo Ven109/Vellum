@@ -12,6 +12,7 @@ import { RoomManager } from "./rooms.js";
 import { authPlugin } from "./auth/routes.js";
 import { AccountService } from "./auth/service.js";
 import type { UserRow } from "./auth/service.js";
+import { corsPlugin } from "./cors.js";
 import { createMailer } from "./mail.js";
 import { ReadOnlyError } from "./sharing/guard.js";
 import { sharingPlugin } from "./sharing/routes.js";
@@ -59,6 +60,10 @@ declare module "fastify" {
   }
 }
 
+export function redactUrl(url: string): string {
+  return url.replace(/([?&]access_token=)[^&]*/g, "$1[redacted]");
+}
+
 export const DOC_ID = /^[a-z]{3}_[0-9a-z]{10,40}$/;
 
 export async function buildApp(
@@ -75,7 +80,19 @@ export async function buildApp(
     logger:
       opts.logger === false
         ? false
-        : { level: config.logLevel, redact: ["req.headers.authorization", "req.headers.cookie"] },
+        : {
+            level: config.logLevel,
+            redact: ["req.headers.authorization", "req.headers.cookie"],
+            serializers: {
+              // Tokens in the sync socket's query string must not reach the logs.
+              req: (req: { method: string; url: string; hostname?: string; ip?: string }) => ({
+                method: req.method,
+                url: redactUrl(req.url),
+                host: req.hostname,
+                remoteAddress: req.ip,
+              }),
+            },
+          },
     bodyLimit: 10 * 1024 * 1024,
   });
   const db = opts.db ?? openDatabase(config.dataDir);
@@ -85,6 +102,7 @@ export async function buildApp(
   const sharing = new SharingService(db, accounts);
   app.decorate("ctx", { config, db, docs, rooms, accounts, sharing });
 
+  corsPlugin(app, opts.env ?? process.env);
   await app.register(fastifyCookie);
   await app.register(fastifyWebsocket, { options: { maxPayload: 16 * 1024 * 1024 } });
   authPlugin(app, {

@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { ApiError, account } from "../data/account.js";
 import type { InstanceInfo, Me } from "../data/account.js";
-import { detectServer, setSyncWorkspaceResolver } from "../data/server.js";
+import { detectServer, setSessionToken, setSyncWorkspaceResolver } from "../data/server.js";
 import { useApp } from "./app.js";
 
 export type AuthStatus = "checking" | "local" | "setup" | "signed-out" | "signed-in";
@@ -51,7 +51,13 @@ export const useAuth = create<AuthState>((set, get) => ({
       instance: get().instance ? { ...get().instance!, setupRequired: false } : null,
     });
     await useApp.getState().init(undefined, me);
-    void useApp.getState().loadShared();
+    void useApp
+      .getState()
+      .loadShared()
+      .then(() => {
+        // Keep every document on this device in step with the server, not just the open one.
+        void import("../data/background-sync.js").then((m) => m.startBackgroundSync());
+      });
   },
 
   async reload() {
@@ -63,6 +69,7 @@ export const useAuth = create<AuthState>((set, get) => ({
 
   async signOut() {
     await account.logout().catch(() => undefined);
+    setSessionToken(null);
     // Local copies stay on this device; a full reload drops in-memory state and live connections.
     window.location.assign("/sign-in");
   },

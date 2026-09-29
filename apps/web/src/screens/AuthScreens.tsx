@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { ApiError, account } from "../data/account.js";
+import { configuredServer, setConfiguredServer } from "../data/server.js";
 import type { WorkspaceRole } from "../data/account.js";
 import { useAuth } from "../state/auth.js";
 import { navigate } from "../state/router.js";
@@ -215,6 +216,20 @@ export function SignInScreen() {
           </a>
         )}
       </p>
+      {configuredServer() && (
+        <p className="vl-auth-links">
+          <span className="vl-muted">Server: {configuredServer()}</span>
+          <button
+            className="vl-link"
+            onClick={() => {
+              setConfiguredServer(null);
+              window.location.assign("/library");
+            }}
+          >
+            Use Vellum without a server
+          </button>
+        </p>
+      )}
     </AuthShell>
   );
 }

@@ -4,8 +4,71 @@
  */
 let detected: Promise<boolean> | null = null;
 
+const SERVER_KEY = "vellum:server-url";
+const TOKEN_KEY = "vellum:session-token";
+
+function stored(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function store(key: string, value: string | null) {
+  try {
+    if (value) localStorage.setItem(key, value);
+    else localStorage.removeItem(key);
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+/**
+ * The server this app syncs with. The web app talks to the server it was loaded from; the desktop app
+ * (and a web build opened elsewhere) uses the server the writer connected to in Settings, if any.
+ */
 export function serverBaseUrl(): string {
-  return (import.meta.env.VITE_VELLUM_SERVER as string | undefined) ?? window.location.origin;
+  return (
+    stored(SERVER_KEY) ?? (import.meta.env.VITE_VELLUM_SERVER as string | undefined) ?? window.location.origin
+  );
+}
+
+/** True when the server is on another origin, so sign-in uses a bearer token instead of a cookie. */
+export function isCrossOrigin(): boolean {
+  try {
+    return new URL(serverBaseUrl()).origin !== window.location.origin;
+  } catch {
+    return false;
+  }
+}
+
+export function configuredServer(): string | null {
+  return stored(SERVER_KEY);
+}
+
+/** Connect to a Vellum server (or disconnect with null). Signs out of the previous one. */
+export function setConfiguredServer(url: string | null): void {
+  store(SERVER_KEY, url ? url.replace(/\/+$/, "") : null);
+  store(TOKEN_KEY, null);
+  detected = null;
+}
+
+export function sessionToken(): string | null {
+  return isCrossOrigin() ? stored(TOKEN_KEY) : null;
+}
+
+export function setSessionToken(token: string | null): void {
+  store(TOKEN_KEY, token);
+}
+
+/** Headers that authenticate requests to a server on another origin. */
+export function authHeaders(): Record<string, string> {
+  const token = sessionToken();
+  return {
+    ...(token ? { authorization: `Bearer ${token}` } : {}),
+    ...(isCrossOrigin() ? { "x-vellum-token": "1" } : {}),
+  };
 }
 
 export function detectServer(timeoutMs = 2000): Promise<boolean> {
@@ -34,6 +97,8 @@ export function syncUrl(docId: string, workspaceId?: string): string {
   base.protocol = base.protocol === "https:" ? "wss:" : "ws:";
   base.pathname = `/sync/${encodeURIComponent(docId)}`;
   if (workspaceId) base.searchParams.set("ws", workspaceId);
+  const token = sessionToken();
+  if (token) base.searchParams.set("access_token", token);
   return base.toString();
 }
 
