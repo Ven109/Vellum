@@ -179,7 +179,7 @@ export const account = {
     ),
   shared: () => api<SharedDoc[]>("GET", "/api/shared"),
   workspaceDocuments: (id: string) =>
-    api<Array<{ id: string; title: string; createdBy: string; createdAt: string }>>(
+    api<Array<{ id: string; title: string; createdBy: string; createdAt: string; version: number }>>(
       "GET",
       `/api/workspaces/${id}/documents`,
     ),

@@ -42,6 +42,7 @@ export function sharingPlugin(app: FastifyInstance, deps: Deps): void {
     }
   };
   const titleOf = (docId: string) => withDoc(docId, (d) => d.getText("title").toString()) || "Untitled";
+  const titleCache = new Map<string, { version: number; title: string }>();
 
   const sharingState = (docId: string) => {
     const workspaceId = accounts.documentWorkspace(docId)!;
@@ -151,7 +152,14 @@ export function sharingPlugin(app: FastifyInstance, deps: Deps): void {
     const user = requireUser(req);
     const role = accounts.roleIn(req.params.id, user.id);
     if (!role || role === "guest") throw new AuthError(403, "forbidden", "You don't have access to that.");
-    return accounts.workspaceDocuments(req.params.id).map((d) => ({ ...d, title: titleOf(d.id) }));
+    // Titles live in each document's CRDT; loading one is costly, so reuse it until the document changes.
+    return accounts.workspaceDocuments(req.params.id).map((d) => {
+      const cached = titleCache.get(d.id);
+      if (cached && cached.version === d.version) return { ...d, title: cached.title };
+      const title = titleOf(d.id);
+      titleCache.set(d.id, { version: d.version, title });
+      return { ...d, title };
+    });
   });
 
   app.get("/api/shared", async (req) => {

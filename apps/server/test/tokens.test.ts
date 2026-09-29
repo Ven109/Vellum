@@ -119,13 +119,31 @@ describe("workspace document list", () => {
       url: `/api/workspaces/${admin.workspaceId}/documents`,
       headers: { cookie: admin.cookie },
     });
-    expect(res.json()).toEqual([
-      expect.objectContaining({
-        id: "doc_01listlistlistlistlistli",
-        title: "From another device",
-        createdBy: admin.userId,
-      }),
-    ]);
+    const [listed] = res.json() as Array<{ id: string; title: string; createdBy: string; version: number }>;
+    expect(listed).toMatchObject({
+      id: "doc_01listlistlistlistlistli",
+      title: "From another device",
+      createdBy: admin.userId,
+    });
+    // The version moves when the document changes, so clients know what to sync.
+    expect(listed!.version).toBeGreaterThan(0);
+    const again = new Y.Doc();
+    const c2 = await connect(base, `doc_01listlistlistlistlistli?ws=${admin.workspaceId}`, again, {
+      cookie: admin.cookie,
+    });
+    await until(() => again.getText("title").length > 0);
+    again.getText("title").insert(0, "Renamed: ");
+    await until(() => c2.acks.length > 1);
+    await c2.close();
+    const after = (
+      await app.inject({
+        method: "GET",
+        url: `/api/workspaces/${admin.workspaceId}/documents`,
+        headers: { cookie: admin.cookie },
+      })
+    ).json() as Array<{ title: string; version: number }>;
+    expect(after[0]!.version).toBeGreaterThan(listed!.version);
+    expect(after[0]!.title).toBe("Renamed: From another device");
     expect(
       (await app.inject({ method: "GET", url: `/api/workspaces/${admin.workspaceId}/documents` })).statusCode,
     ).toBe(401);

@@ -318,12 +318,25 @@ export class AccountService {
         { workspace_id: string } | undefined
     )?.workspace_id;
   }
-  workspaceDocuments(workspaceId: string): Array<{ id: string; createdBy: string; createdAt: string }> {
+  /**
+   * Documents registered to a workspace, with `version`: the sequence number of the latest stored update,
+   * so clients can tell which documents changed since they last synced without opening each one.
+   */
+  workspaceDocuments(
+    workspaceId: string,
+  ): Array<{ id: string; createdBy: string; createdAt: string; version: number }> {
     return this.db
       .prepare(
-        "SELECT id, created_by AS createdBy, created_at AS createdAt FROM documents WHERE workspace_id = ? ORDER BY created_at",
+        `SELECT d.id, d.created_by AS createdBy, d.created_at AS createdAt,
+                COALESCE((SELECT MAX(seq) FROM doc_updates u WHERE u.doc_id = d.id), 0) AS version
+           FROM documents d WHERE d.workspace_id = ? ORDER BY d.created_at`,
       )
-      .all(workspaceId) as unknown as Array<{ id: string; createdBy: string; createdAt: string }>;
+      .all(workspaceId) as unknown as Array<{
+      id: string;
+      createdBy: string;
+      createdAt: string;
+      version: number;
+    }>;
   }
   registerDocument(docId: string, workspaceId: string, userId: string): void {
     this.db
