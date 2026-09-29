@@ -35,6 +35,8 @@ mac:
   gatekeeperAssess: false
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
+  extendInfo:
+    NSMicrophoneUsageDescription: Vellum uses the microphone only during a voice session you start.
 win:
   target: [nsis]
 nsis:

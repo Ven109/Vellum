@@ -241,7 +241,16 @@ if (!app.requestSingleInstanceLock()) {
 
   void app.whenReady().then(() => {
     // Deny every permission request (camera, notifications, geolocation…) unless we add it on purpose.
-    session.defaultSession.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));
+    // Every permission is denied except the microphone for our own page (voice sessions): audio only,
+    // never the camera or screen.
+    session.defaultSession.setPermissionRequestHandler((_wc, permission, callback, details) => {
+      const fromUs = (details.requestingUrl ?? "").startsWith(`${ORIGIN}/`);
+      const types = (details as { mediaTypes?: string[] }).mediaTypes ?? [];
+      callback(fromUs && permission === "media" && types.length > 0 && types.every((t) => t === "audio"));
+    });
+    session.defaultSession.setPermissionCheckHandler(
+      (_wc, permission, origin) => permission === "media" && origin.startsWith(ORIGIN),
+    );
     serveApp();
     registerIpc();
     buildMenu();

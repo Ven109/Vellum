@@ -28,6 +28,7 @@ import { WorkspaceSettingsPage } from "./screens/WorkspaceSettings.js";
 import { useApp } from "./state/app.js";
 import { useAuth } from "./state/auth.js";
 import { useFocus } from "./state/focus.js";
+import { VoiceModeSettingsPage } from "./screens/VoiceModeSettings.js";
 import { OnboardingScreen } from "./screens/OnboardingScreen.js";
 import { onboardingPending } from "./state/onboarding.js";
 import { MobileBar, NavBackdrop } from "./components/MobileNav.js";
@@ -141,6 +142,7 @@ function Screen() {
   if (route.name === "screen" && route.path === "/settings/export") return <ExportSettingsPage />;
   if (route.name === "screen" && route.path === "/settings/updates") return <UpdateSettingsPage />;
   if (route.name === "screen" && route.path === "/settings/voice") return <VoiceSettingsPage />;
+  if (route.name === "screen" && route.path === "/settings/voice-mode") return <VoiceModeSettingsPage />;
   if (route.name === "screen" && route.path === "/settings/workspace") return <WorkspaceSettingsPage />;
   if (route.name === "screen" && route.path === "/insights") return <InsightsScreen />;
   return (

@@ -29,9 +29,9 @@ let app: ElectronApplication;
 let page: Page;
 let userData: string;
 
-async function launch(env: Record<string, string> = {}) {
+async function launch(env: Record<string, string> = {}, extraArgs: string[] = []) {
   app = await electron.launch({
-    args: [APP_DIR, `--user-data-dir=${userData}`],
+    args: [APP_DIR, `--user-data-dir=${userData}`, ...extraArgs],
     env: { ...process.env, ELECTRON_ENABLE_LOGGING: "0", VELLUM_NO_PROTOCOL: "1", ...env },
   });
   page = await app.firstWindow();
@@ -207,4 +207,22 @@ test("update settings: channel and opt-out, and administrators can turn updates 
   const refused = await page.evaluate(() => window.vellumDesktop!.updates!.setSettings({ autoUpdate: true }));
   expect(refused.managed).toBe(true);
   expect(refused.autoUpdate).toBe(false);
+});
+
+test("the page may use the microphone, and nothing else", async () => {
+  await app.close();
+  // A fake device, but no fake permission UI: the app's own permission handler decides.
+  await launch({}, ["--use-fake-device-for-media-stream"]);
+  const result = await page.evaluate(async () => {
+    const tryGet = (c: MediaStreamConstraints) =>
+      navigator.mediaDevices.getUserMedia(c).then(
+        (s) => {
+          s.getTracks().forEach((t) => t.stop());
+          return "granted";
+        },
+        (e: Error) => e.name,
+      );
+    return { audio: await tryGet({ audio: true }), video: await tryGet({ video: true }) };
+  });
+  expect(result).toEqual({ audio: "granted", video: "NotAllowedError" });
 });

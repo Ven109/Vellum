@@ -63,6 +63,7 @@ test.describe("docs", () => {
       "Accounts, workspaces and importing",
       "Desktop app",
       "AI providers",
+      "Voice mode",
       "Document format",
       "Contributing to Vellum",
       "Releasing",
