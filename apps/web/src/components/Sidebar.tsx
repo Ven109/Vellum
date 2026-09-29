@@ -1,4 +1,14 @@
-import { ChevronDown, Feather, FilePlus2, FolderPlus, Library, Search, Sparkles, Users } from "lucide-react";
+import {
+  ChartColumn,
+  ChevronDown,
+  Feather,
+  FilePlus2,
+  FolderPlus,
+  Library,
+  Search,
+  Sparkles,
+  Users,
+} from "lucide-react";
 import type { DocumentMeta } from "@vellum/core";
 import type { DragEvent, ReactNode } from "react";
 import { useState } from "react";
@@ -16,6 +26,7 @@ export function displayTitle(title: string): string {
 /** Primary navigation entries. Other screens add themselves here. */
 export const NAV_ITEMS: Array<{ path: string; label: string; icon: ReactNode }> = [
   { path: "/library", label: "Library", icon: <Library size={15} /> },
+  { path: "/insights", label: "Insights", icon: <ChartColumn size={15} /> },
   { path: "/settings/ai", label: "AI provider", icon: <Sparkles size={15} /> },
   { path: "/settings/voice", label: "Voice and style", icon: <Feather size={15} /> },
   { path: "/settings/workspace", label: "Workspace and people", icon: <Users size={15} /> },

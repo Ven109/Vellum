@@ -103,3 +103,60 @@ export function longestStreak(totals: DayTotal[], goal: number): number {
   }
   return best;
 }
+
+export interface InsightsSummary {
+  days: DayTotal[];
+  words: number;
+  averagePerDay: number;
+  activeMs: number;
+  sessions: number;
+  goalDays: number;
+  longestStreak: number;
+  /** Words per collection id (null for unfiled), largest first. */
+  byCollection: Array<{ collectionId: string | null; words: number }>;
+  /** Documents written in during the range, most words first. */
+  documents: Array<{ documentId: string; words: number }>;
+}
+
+export function summarize(
+  sessions: WritingSession[],
+  from: string,
+  to: string,
+  goal: number,
+): InsightsSummary {
+  const days = dailyTotals(sessions, from, to);
+  const inRange = sessions.filter((s) => {
+    const d = dayKey(new Date(s.endedAt));
+    return d >= from && d <= to;
+  });
+  const words = days.reduce((n, d) => n + d.words, 0);
+  const tally = <K>(key: (s: WritingSession) => K) => {
+    const m = new Map<K, number>();
+    for (const s of inRange) m.set(key(s), (m.get(key(s)) ?? 0) + s.wordsAdded);
+    return [...m].filter(([, w]) => w > 0).sort((a, b) => b[1] - a[1]);
+  };
+  return {
+    days,
+    words,
+    averagePerDay: days.length ? Math.round(words / days.length) : 0,
+    activeMs: days.reduce((n, d) => n + d.activeMs, 0),
+    sessions: inRange.length,
+    goalDays: days.filter((d) => goal > 0 && d.words >= goal).length,
+    longestStreak: longestStreak(days, goal),
+    byCollection: tally((s) => s.collectionId).map(([collectionId, w]) => ({ collectionId, words: w })),
+    documents: tally((s) => s.documentId).map(([documentId, w]) => ({ documentId, words: w })),
+  };
+}
+
+export function insightsCsv(days: DayTotal[], goal: number): string {
+  const rows = days.map((d) =>
+    [
+      d.day,
+      d.words,
+      d.sessions,
+      Math.round(d.activeMs / 60_000),
+      goal > 0 && d.words >= goal ? "yes" : "no",
+    ].join(","),
+  );
+  return ["date,words,sessions,minutes,goal_met", ...rows].join("\n") + "\n";
+}

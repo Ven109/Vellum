@@ -2758,3 +2758,216 @@ del.vl-sug-del,
 .vl-goal-form p {
   margin: 0;
 }
+
+/* Insights */
+.vl-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.vl-insights {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 32px 24px 80px;
+}
+
+.vl-insights-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.vl-insights-head h1 {
+  margin: 0 0 4px;
+  font-family: var(--serif);
+  font-size: 30px;
+}
+
+.vl-insights-head p {
+  margin: 0;
+}
+
+.vl-insights-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.vl-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.vl-tile {
+  display: grid;
+  gap: 4px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+}
+
+.vl-tile-label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.vl-tile strong {
+  font-family: var(--serif);
+  font-size: 28px;
+  font-variant-numeric: tabular-nums;
+}
+
+.vl-tile .vl-muted {
+  font-size: 12px;
+}
+
+.vl-chart {
+  margin: 0;
+}
+
+.vl-chart svg {
+  width: 100%;
+  height: auto;
+}
+
+.vl-bar {
+  fill: color-mix(in srgb, var(--accent) 35%, var(--line));
+}
+
+.vl-bar-met {
+  fill: var(--accent);
+}
+
+.vl-goal-line {
+  stroke: var(--ink-2);
+  stroke-dasharray: 4 4;
+  stroke-width: 1;
+}
+
+.vl-chart-label {
+  fill: var(--muted);
+  font-size: 11px;
+}
+
+.vl-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  align-items: center;
+  margin-top: 8px;
+  color: var(--ink-2);
+  font-size: 12px;
+}
+
+.vl-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: -8px;
+  border-radius: 2px;
+}
+
+.vl-swatch.vl-bar {
+  background: color-mix(in srgb, var(--accent) 35%, var(--line));
+}
+
+.vl-swatch.vl-bar-met {
+  background: var(--accent);
+}
+
+.vl-swatch-line {
+  display: inline-block;
+  width: 16px;
+  margin-right: -8px;
+  border-top: 1px dashed var(--ink-2);
+}
+
+.vl-insights-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.vl-breakdown {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vl-breakdown li {
+  display: grid;
+  grid-template-columns: minmax(0, 140px) minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.vl-breakdown-name {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.vl-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.vl-breakdown-bar {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--panel-2);
+}
+
+.vl-breakdown-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+.vl-breakdown-n {
+  font-variant-numeric: tabular-nums;
+}
+
+.vl-reading-big {
+  margin: 0 0 4px;
+  font-family: var(--serif);
+  font-size: 22px;
+}
+
+.vl-doc-list {
+  margin: 12px 0 0;
+  padding-left: 18px;
+}
+
+@media (max-width: 820px) {
+  .vl-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .vl-insights-grid {
+    grid-template-columns: 1fr;
+  }
+}
