@@ -4,6 +4,7 @@ import type { DragEvent, ReactNode } from "react";
 import { useState } from "react";
 import { useApp } from "../state/app.js";
 import { CollectionMenu } from "./CollectionMenu.js";
+import { Inbox } from "./Inbox.js";
 import { MOD_KEY, useCommands } from "../state/commands.js";
 import { docPath, navigate, usePathname, useRoute } from "../state/router.js";
 
@@ -59,7 +60,7 @@ export function Sidebar() {
 
   return (
     <nav className="vl-sidebar" aria-label="Workspace">
-      <div className="vl-ws">
+      <div className="vl-ws vl-ws-row">
         <button
           className="vl-ws-btn"
           aria-haspopup="menu"
@@ -90,6 +91,7 @@ export function Sidebar() {
             ))}
           </ul>
         )}
+        <Inbox />
       </div>
 
       <button className="vl-search" onClick={() => useCommands.getState().openPalette()}>

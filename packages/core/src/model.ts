@@ -187,6 +187,8 @@ export type TextAnchor = z.infer<typeof TextAnchor>;
 export const Comment = z.object({
   id: z.string(),
   authorId: z.string(),
+  /** Display name at the time of writing, so comments from people not in this workspace still read well. */
+  authorName: z.string().optional(),
   body: z.string().min(1),
   mentions: z.array(z.string()).default([]),
   createdAt: Timestamp,

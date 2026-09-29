@@ -5,6 +5,8 @@ import { WELCOME_MARKDOWN } from "../data/seed.js";
 import { DocumentEditor } from "../editor/DocumentEditor.js";
 import { AssistantPanel } from "../components/AssistantPanel.js";
 import { ProposalCard } from "../components/ProposalCard.js";
+import { CommentComposer } from "../components/Comments.js";
+import { ErrorBoundary } from "../components/ErrorBoundary.js";
 import { RightRail } from "../components/RightRail.js";
 import { useAssistant } from "../state/assistant.js";
 import { TopBar } from "../components/TopBar.js";
@@ -195,8 +197,11 @@ export function EditorScreen({ docId, splitId }: { docId: string; splitId?: stri
           <DocumentPane docId={docId} primary />
         </div>
       </main>
-      {assistantOpen ? <AssistantPanel /> : <RightRail />}
+      <ErrorBoundary label="the side panel">
+        {assistantOpen ? <AssistantPanel /> : <RightRail />}
+      </ErrorBoundary>
       <ProposalCard />
+      <CommentComposer />
     </>
   );
 }

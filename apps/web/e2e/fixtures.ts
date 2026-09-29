@@ -107,7 +107,8 @@ export async function selectText(page: Page, text: string) {
               state: {
                 doc: { descendants(f: (n: { isText: boolean; text?: string }, p: number) => void): void };
               };
-              commands: { setTextSelection(r: { from: number; to: number }): void; focus(): void };
+              commands: { setTextSelection(r: { from: number; to: number }): void };
+              view: { focus(): void };
             };
           };
         };
@@ -118,8 +119,8 @@ export async function selectText(page: Page, text: string) {
       if (from === -1 && n.isText && n.text!.includes(needle)) from = p + n.text!.indexOf(needle);
     });
     if (from === -1) throw new Error(`text not found: ${needle}`);
-    ed.commands.focus();
     ed.commands.setTextSelection({ from, to: from + needle.length });
+    ed.view.focus(); // synchronous, unlike commands.focus(), so the next keystroke lands in the editor
   }, text);
 }
 
