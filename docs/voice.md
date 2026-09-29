@@ -77,3 +77,23 @@ Each turn includes 300 ms of audio from before speech was detected, so first syl
 Every provider is an adapter behind one interface in `packages/voice/src/speech`: `createRecognizer()`
 for speech-to-text and `createSynthesizer()` for text-to-speech. Adding a provider is a new adapter plus
 a preset; nothing else in the app changes.
+
+## The conversation loop
+
+Each turn you speak is sorted before anything touches the document (`packages/voice/src/conversation`):
+
+| What you said                                        | Kind       | What happens                                                                             |
+| ---------------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------- |
+| "Every workshop has one tool nobody talks about."    | content    | Drafted into the piece. Your points are kept, and the wording is smoothed where it helps |
+| "Start with: every workshop has one tool…"           | content    | Those exact words go in, at the start                                                    |
+| "Keep it under 800 words." "Make it warmer."         | constraint | Becomes a chip you can edit or remove, and applies to all writing from then on           |
+| "Make the opening punchier." "Add a bit on pricing." | steering   | The agent revises or writes as asked                                                     |
+| "I'm writing an essay for new woodworkers."          | brief      | Sets what the piece is and who it's for. The first brief starts the draft                |
+| "Hmm, where was I."                                  | thinking   | Nothing is written                                                                       |
+
+A turn can mix kinds, and each sentence is handled on its own. A new constraint replaces an earlier one
+of the same kind: "under 600 words" replaces "under 800 words".
+
+Sorting uses your own AI provider when one is set up. If it takes longer than 2.5 s, fails, or returns
+something unusable, local rules take over. Those rules also run on their own when there's no provider.
+Either way, constraints are read locally, so a chip always shows the same thing for the same words.
