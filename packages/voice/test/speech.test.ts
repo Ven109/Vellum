@@ -177,3 +177,52 @@ describe("text-to-speech", () => {
     expect(TTS_PRESETS[0]!.kind).toBe("system");
   });
 });
+
+describe("privacy", () => {
+  it("opts out of Deepgram model improvement unless told otherwise", () => {
+    const urls: string[] = [];
+    const createSocket = (url: string) => {
+      urls.push(url);
+      return {
+        readyState: 0,
+        binaryType: "",
+        send() {},
+        close() {},
+        onopen: null,
+        onclose: null,
+        onerror: null,
+        onmessage: null,
+      } as unknown as SocketLike;
+    };
+    createRecognizer({ kind: "deepgram", apiKey: "k" }, {}, { createSocket }).close();
+    createRecognizer({ kind: "deepgram", apiKey: "k", noRetention: false }, {}, { createSocket }).close();
+    expect(urls[0]).toContain("mip_opt_out=true");
+    expect(urls[1]).not.toContain("mip_opt_out");
+  });
+
+  it("uses ElevenLabs zero-retention mode only when asked (it's an enterprise feature)", async () => {
+    const seen: string[] = [];
+    const f = (async (url: string) => {
+      seen.push(url);
+      return new Response(new Uint8Array([1]));
+    }) as unknown as typeof fetch;
+    await createSynthesizer({ kind: "elevenlabs", apiKey: "k" }, { fetch: f }).synthesize("a");
+    await createSynthesizer(
+      { kind: "elevenlabs", apiKey: "k", zeroRetention: true },
+      { fetch: f },
+    ).synthesize("a");
+    expect(seen[0]).not.toContain("enable_logging");
+    expect(seen[1]).toContain("enable_logging=false");
+  });
+
+  it("says plainly where audio goes and what is kept", () => {
+    const facts = STT_PRESETS.map((p) => p.privacy({}));
+    expect(facts.map((f) => f.local)).toEqual([false, false, true]);
+    expect(facts[0]!.destination).toContain("api.openai.com");
+    expect(facts[1]!.retention).toContain("opts out");
+    expect(facts[2]!.destination).toContain("127.0.0.1:8080");
+    expect(TTS_PRESETS.find((p) => p.kind === "openai")!.privacy({}).destination).toContain(
+      "never your audio",
+    );
+  });
+});

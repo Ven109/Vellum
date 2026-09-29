@@ -124,6 +124,8 @@ export function authPlugin(app: FastifyInstance, deps: AuthDeps): void {
     signupsEnabled: accounts.signupsEnabled(),
     oauth: providers.map((p) => ({ id: p.id, label: p.label })),
     mail: mailer.configured,
+    // Self-hosters can require that voice sessions keep all audio on the writer's machine.
+    voice: { localOnly: /^(1|true|yes)$/i.test(deps.env.VELLUM_VOICE_LOCAL_ONLY ?? "") },
   }));
 
   app.post<{

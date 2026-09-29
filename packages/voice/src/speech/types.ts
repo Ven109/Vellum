@@ -7,6 +7,8 @@ export interface SttConfig {
   baseUrl?: string;
   model?: string;
   language?: string;
+  /** Ask the provider not to keep audio, where it offers that (the default). */
+  noRetention?: boolean;
 }
 
 export interface TtsConfig {
@@ -15,6 +17,17 @@ export interface TtsConfig {
   baseUrl?: string;
   model?: string;
   voice?: string;
+  /** ElevenLabs zero-retention mode (their enterprise plans only; requests fail without it). */
+  zeroRetention?: boolean;
+}
+
+/** Plain facts about where speech data goes and what the provider keeps. */
+export interface PrivacyFacts {
+  /** Where audio (or reply text) is sent. */
+  destination: string;
+  /** Nothing leaves this machine. */
+  local: boolean;
+  retention: string;
 }
 
 export interface VoiceOption {

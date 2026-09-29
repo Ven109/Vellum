@@ -27,8 +27,10 @@ import {
   sttKeyId,
   ttsConfig,
   ttsKeyId,
+  localOnlyPolicy,
   useSpeech,
 } from "../data/speech.js";
+import { useAuth } from "../state/auth.js";
 import type { KeyInfo } from "../data/keys.js";
 import { Speaker } from "../voice/speaker.js";
 
@@ -276,6 +278,7 @@ function KeyField({
 function SpeechToTextCard() {
   const stt = useSpeech((s) => s.settings.stt);
   const update = useSpeech((s) => s.update);
+  const localOnly = useLocalOnly();
   const preset = stt ? sttPreset(stt.kind) : null;
   return (
     <section className="vl-card" aria-labelledby="stt-h">
@@ -290,10 +293,12 @@ function SpeechToTextCard() {
             key={p?.kind ?? "off"}
             className="vl-kind"
             data-selected={(stt?.kind ?? null) === (p?.kind ?? null) || undefined}
+            data-disabled={(localOnly.on && p && !p.local) || undefined}
           >
             <input
               type="radio"
               name="stt"
+              disabled={localOnly.on && !!p && !p.local}
               checked={(stt?.kind ?? null) === (p?.kind ?? null)}
               onChange={() => update({ stt: p ? { kind: p.kind as SttKind } : null })}
             />
@@ -337,6 +342,7 @@ function SpeechToTextCard() {
 }
 
 function VoiceCard() {
+  const localOnly = useLocalOnly();
   const tts = useSpeech((s) => s.settings.tts);
   const update = useSpeech((s) => s.update);
   const preset = ttsPreset(tts.kind);
@@ -371,10 +377,16 @@ function VoiceCard() {
       <p className="vl-muted">How the agent talks back. The system voice works with no setup.</p>
       <div className="vl-provider-choices" role="radiogroup" aria-label="Voice provider">
         {TTS_PRESETS.map((p) => (
-          <label key={p.kind} className="vl-kind" data-selected={tts.kind === p.kind || undefined}>
+          <label
+            key={p.kind}
+            className="vl-kind"
+            data-selected={tts.kind === p.kind || undefined}
+            data-disabled={(localOnly.on && !p.local) || undefined}
+          >
             <input
               type="radio"
               name="tts"
+              disabled={localOnly.on && !p.local}
               checked={tts.kind === p.kind}
               onChange={() => update({ tts: { kind: p.kind as TtsKind } })}
             />
@@ -422,6 +434,106 @@ function VoiceCard() {
   );
 }
 
+function useLocalOnly() {
+  useSpeech((s) => s.settings.privacy.localOnly);
+  useAuth((s) => s.instance);
+  return localOnlyPolicy();
+}
+
+/** Where audio goes, what providers keep, and the controls over both. */
+function PrivacyCard() {
+  const settings = useSpeech((s) => s.settings);
+  const update = useSpeech((s) => s.update);
+  const localOnly = useLocalOnly();
+  const privacy = settings.privacy;
+  const set = (patch: Partial<typeof privacy>) => update({ privacy: { ...privacy, ...patch } });
+  const stt = settings.stt
+    ? sttPreset(settings.stt.kind).privacy({ ...settings.stt, noRetention: privacy.noRetention })
+    : null;
+  const ttsKind = localOnly.on && !ttsPreset(settings.tts.kind).local ? "system" : settings.tts.kind;
+  const tts = ttsPreset(ttsKind).privacy({ zeroRetention: privacy.elevenLabsZeroRetention });
+  return (
+    <section className="vl-card" aria-labelledby="privacy-h">
+      <h2 id="privacy-h">Privacy</h2>
+      <p>
+        Vellum never records or stores your audio. Only the text of the conversation is kept, with the
+        document.
+      </p>
+      <dl className="vl-privacy-facts" data-testid="privacy-facts">
+        <dt>Your voice goes to</dt>
+        <dd>
+          {stt ? (
+            <>
+              <strong data-local={stt.local || undefined}>{stt.destination}</strong>
+              <span className="vl-muted">{stt.retention}</span>
+            </>
+          ) : (
+            <span className="vl-muted">Nowhere yet: choose speech recognition above.</span>
+          )}
+        </dd>
+        <dt>Replies are spoken by</dt>
+        <dd>
+          <strong data-local={tts.local || undefined}>{tts.destination}</strong>
+          <span className="vl-muted">{tts.retention}</span>
+        </dd>
+      </dl>
+      <label className="vl-switch">
+        <input
+          type="checkbox"
+          checked={localOnly.on}
+          disabled={localOnly.enforced}
+          onChange={(e) => set({ localOnly: e.target.checked })}
+        />
+        <span>
+          Local only: no audio leaves this machine
+          <small className="vl-muted">
+            {localOnly.enforced
+              ? "Required by your server's administrator."
+              : "Only whisper.cpp for recognition and your device's voices for replies."}
+          </small>
+        </span>
+      </label>
+      <label className="vl-switch">
+        <input
+          type="checkbox"
+          checked={privacy.noRetention}
+          onChange={(e) => set({ noRetention: e.target.checked })}
+        />
+        <span>
+          Ask providers not to keep my audio
+          <small className="vl-muted">Where they offer it (Deepgram's model improvement opt-out).</small>
+        </span>
+      </label>
+      {settings.tts.kind === "elevenlabs" && !localOnly.on && (
+        <label className="vl-switch">
+          <input
+            type="checkbox"
+            checked={privacy.elevenLabsZeroRetention}
+            onChange={(e) => set({ elevenLabsZeroRetention: e.target.checked })}
+          />
+          <span>
+            Use ElevenLabs zero-retention mode
+            <small className="vl-muted">Enterprise plans only; requests fail on other plans.</small>
+          </span>
+        </label>
+      )}
+      <label className="vl-switch">
+        <input
+          type="checkbox"
+          checked={privacy.endOnBlur}
+          onChange={(e) => set({ endOnBlur: e.target.checked })}
+        />
+        <span>
+          End the session when Vellum isn't in front
+          <small className="vl-muted">
+            The microphone closes as soon as you switch to another window or app.
+          </small>
+        </span>
+      </label>
+    </section>
+  );
+}
+
 export function VoiceModeSettingsPage() {
   return (
     <SettingsLayout title="Voice mode">
@@ -430,6 +542,7 @@ export function VoiceModeSettingsPage() {
       </p>
       <SpeechToTextCard />
       <VoiceCard />
+      <PrivacyCard />
       <MicrophoneCheck />
     </SettingsLayout>
   );

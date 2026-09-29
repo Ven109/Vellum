@@ -4181,3 +4181,69 @@ del.vl-sug-del,
 .vl-from-voice:hover {
   border-left-color: var(--ai);
 }
+
+.vl-provider-choices .vl-kind[data-disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.vl-privacy-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 16px;
+  margin: 12px 0 16px;
+}
+
+.vl-privacy-facts dt {
+  color: var(--muted);
+}
+
+.vl-privacy-facts dd {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+}
+
+.vl-privacy-facts strong[data-local] {
+  color: var(--ok);
+}
+
+.vl-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.vl-mic-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--panel-2);
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.vl-mic-pill[data-on] {
+  background: var(--danger);
+  color: #fff;
+}
+
+.vl-mic-pill[data-on] span {
+  animation: vl-pulse 1.2s ease-in-out infinite;
+}
+
+.vl-voice-stack dd[data-local] {
+  color: var(--ok);
+}
+
+.vl-delete-transcript {
+  align-self: flex-start;
+  font-size: 12px;
+}

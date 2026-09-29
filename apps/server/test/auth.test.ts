@@ -41,6 +41,7 @@ describe("first-run setup and sessions", () => {
     expect((await json("GET", "/api/instance")).json()).toMatchObject({
       setupRequired: true,
       signupsEnabled: true,
+      voice: { localOnly: false },
     });
     const admin = await setupAdmin(app);
     expect((await json("GET", "/api/instance")).json()).toMatchObject({
@@ -258,5 +259,17 @@ describe("sync access control", () => {
     await until(() => eve.ws.readyState === eve.ws.CLOSED);
     expect(app.ctx.accounts.documentWorkspace("doc_01zzzzzzzzzzzzzzzzzzzz")).toBe(admin.workspaceId);
     await mine.close();
+  });
+});
+
+describe("voice policy", () => {
+  it("self-hosters can require local-only voice", async () => {
+    await app.close();
+    app = await buildApp(loadConfig({ PORT: "0", VELLUM_PUBLIC_URL: "http://vellum.test" }), {
+      db: openDatabase(":memory:"),
+      logger: false,
+      env: { VELLUM_VOICE_LOCAL_ONLY: "true" },
+    });
+    expect((await json("GET", "/api/instance")).json().voice).toEqual({ localOnly: true });
   });
 });

@@ -1,5 +1,5 @@
 import { SpeechError, networkError, speechErrorFrom } from "./types.js";
-import type { TtsConfig, TtsKind, VoiceOption } from "./types.js";
+import type { PrivacyFacts, TtsConfig, TtsKind, VoiceOption } from "./types.js";
 
 export interface TtsPreset {
   kind: TtsKind;
@@ -11,6 +11,7 @@ export interface TtsPreset {
   defaultVoice: string;
   keyUrl?: string;
   local: boolean;
+  privacy: (config: Pick<TtsConfig, "zeroRetention">) => PrivacyFacts;
 }
 
 export const TTS_PRESETS: TtsPreset[] = [
@@ -23,6 +24,12 @@ export const TTS_PRESETS: TtsPreset[] = [
     defaultModel: "",
     defaultVoice: "",
     local: true,
+    privacy: () => ({
+      destination: "Your device's built-in voices",
+      local: true,
+      retention:
+        "Replies are spoken on this device. (Voices your browser marks as online may use its maker's service.)",
+    }),
   },
   {
     kind: "openai",
@@ -34,6 +41,12 @@ export const TTS_PRESETS: TtsPreset[] = [
     defaultVoice: "coral",
     keyUrl: "https://platform.openai.com/api-keys",
     local: false,
+    privacy: () => ({
+      destination: "OpenAI (api.openai.com): the text of replies, never your audio",
+      local: false,
+      retention:
+        "OpenAI may keep requests for up to 30 days to detect abuse, unless your organisation has zero data retention.",
+    }),
   },
   {
     kind: "elevenlabs",
@@ -45,6 +58,13 @@ export const TTS_PRESETS: TtsPreset[] = [
     defaultVoice: "21m00Tcm4TlvDq8ikWAM",
     keyUrl: "https://elevenlabs.io/app/settings/api-keys",
     local: false,
+    privacy: (c) => ({
+      destination: "ElevenLabs (api.elevenlabs.io): the text of replies, never your audio",
+      local: false,
+      retention: c.zeroRetention
+        ? "Zero-retention mode is on: ElevenLabs doesn't keep the text or the audio."
+        : "ElevenLabs keeps request history in your account. Zero-retention mode is available on its enterprise plans.",
+    }),
   },
 ];
 
@@ -134,7 +154,7 @@ export function createSynthesizer(config: TtsConfig, deps: SynthDeps = {}): Synt
     },
     synthesize: (text, signal) =>
       call(
-        `${base}/text-to-speech/${encodeURIComponent(config.voice || preset.defaultVoice)}/stream?output_format=mp3_44100_128`,
+        `${base}/text-to-speech/${encodeURIComponent(config.voice || preset.defaultVoice)}/stream?output_format=mp3_44100_128${config.zeroRetention ? "&enable_logging=false" : ""}`,
         {
           method: "POST",
           headers: { ...headers, "content-type": "application/json", accept: "audio/mpeg" },
