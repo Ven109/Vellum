@@ -208,7 +208,10 @@ test("connects to a Vellum server with a token and syncs drafts to it", async ()
       })
       .toContain("Synced from the desktop");
   } finally {
+    // Wait for the server to exit: Windows keeps its database file locked until then.
+    const exited = new Promise((resolve) => server.once("exit", resolve));
     server.kill();
-    rmSync(dataDir, { recursive: true, force: true });
+    await exited;
+    rmSync(dataDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
   }
 });
