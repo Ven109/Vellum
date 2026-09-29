@@ -3806,3 +3806,58 @@ del.vl-sug-del,
 .vl-warn {
   color: var(--warn);
 }
+
+.vl-provider-choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.vl-provider-choices .vl-kind {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.vl-provider-choices .vl-kind[data-selected] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.vl-provider-choices input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.vl-provider-choices .vl-kind:focus-within {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.vl-provider-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.vl-provider-fields .vl-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 420px;
+}
+
+.vl-badge {
+  align-self: flex-start;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--panel-2);
+  color: var(--ink-2);
+  font-size: 11px;
+}
