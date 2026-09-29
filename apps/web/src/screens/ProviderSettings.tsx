@@ -1,3 +1,4 @@
+import { SettingsLayout } from "../components/SettingsLayout.js";
 import {
   PROVIDER_PRESETS,
   ProviderError,
@@ -327,100 +328,95 @@ export function ProviderSettings() {
   }, [loaded, providers.length]);
 
   return (
-    <main className="vl-main">
-      <div className="vl-scroll">
-        <div className="vl-settings-page">
-          <h1>AI provider</h1>
-          <p className="vl-lede">
-            The writing assistant uses <strong>your own</strong> API key with the provider you choose. You pay
-            the provider directly. No key, no assistant — everything else in Vellum works without one.
-          </p>
+    <SettingsLayout title="AI provider">
+      <p className="vl-lede">
+        The writing assistant uses <strong>your own</strong> API key with the provider you choose. You pay the
+        provider directly. No key, no assistant — everything else in Vellum works without one.
+      </p>
 
-          {providers.length > 0 && (
-            <section className="vl-card" aria-labelledby="configured">
-              <h2 id="configured">Configured providers</h2>
-              <ul className="vl-provider-list">
-                {providers.map((p) => {
-                  const isDefault = defaultModel?.providerId === p.id;
-                  const info = keys[p.id];
-                  return (
-                    <li key={p.id}>
-                      <div>
-                        <strong>{p.label}</strong>{" "}
-                        {isDefault && <span className="vl-status vl-status-approved">Default</span>}
-                        <div className="vl-muted">
-                          Model{" "}
-                          <input
-                            className="vl-input vl-inline-input"
-                            aria-label={`Default model for ${p.label}`}
-                            defaultValue={isDefault ? defaultModel?.model : p.defaultModel}
-                            onBlur={(e) => {
-                              const model = e.target.value.trim();
-                              if (!model) return;
-                              void save({ ...p, defaultModel: model });
-                              if (isDefault) void setDefault(p.id, model);
-                            }}
-                          />
-                          {p.baseUrl && <> · {hostOf(p.baseUrl)}</>}
-                        </div>
-                        <div className="vl-muted">
-                          <KeyRound size={12} />{" "}
-                          {info ? (
-                            <>
-                              Key ending <code>{info.last4}</code>, saved{" "}
-                              {new Date(info.savedAt).toLocaleDateString()}
-                            </>
-                          ) : (
-                            "No key stored"
-                          )}
-                        </div>
-                      </div>
-                      <div className="vl-row-actions">
-                        {!isDefault && (
-                          <button className="vl-btn" onClick={() => void setDefault(p.id, p.defaultModel)}>
-                            Make default
-                          </button>
-                        )}
-                        <button
-                          className="vl-btn"
-                          onClick={async () => {
-                            const key = window.prompt(
-                              `New API key for ${p.label}. The old key is replaced on this device.`,
-                            );
-                            if (key?.trim()) await save(p, key.trim());
-                          }}
-                        >
-                          Rotate key
-                        </button>
-                        <button
-                          className="vl-btn"
-                          aria-label={`Remove ${p.label}`}
-                          onClick={async () => {
-                            if (window.confirm(`Remove ${p.label} and delete its key from this device?`))
-                              await remove(p.id);
-                          }}
-                        >
-                          <Trash2 size={14} /> Remove
-                        </button>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          )}
+      {providers.length > 0 && (
+        <section className="vl-card" aria-labelledby="configured">
+          <h2 id="configured">Configured providers</h2>
+          <ul className="vl-provider-list">
+            {providers.map((p) => {
+              const isDefault = defaultModel?.providerId === p.id;
+              const info = keys[p.id];
+              return (
+                <li key={p.id}>
+                  <div>
+                    <strong>{p.label}</strong>{" "}
+                    {isDefault && <span className="vl-status vl-status-approved">Default</span>}
+                    <div className="vl-muted">
+                      Model{" "}
+                      <input
+                        className="vl-input vl-inline-input"
+                        aria-label={`Default model for ${p.label}`}
+                        defaultValue={isDefault ? defaultModel?.model : p.defaultModel}
+                        onBlur={(e) => {
+                          const model = e.target.value.trim();
+                          if (!model) return;
+                          void save({ ...p, defaultModel: model });
+                          if (isDefault) void setDefault(p.id, model);
+                        }}
+                      />
+                      {p.baseUrl && <> · {hostOf(p.baseUrl)}</>}
+                    </div>
+                    <div className="vl-muted">
+                      <KeyRound size={12} />{" "}
+                      {info ? (
+                        <>
+                          Key ending <code>{info.last4}</code>, saved{" "}
+                          {new Date(info.savedAt).toLocaleDateString()}
+                        </>
+                      ) : (
+                        "No key stored"
+                      )}
+                    </div>
+                  </div>
+                  <div className="vl-row-actions">
+                    {!isDefault && (
+                      <button className="vl-btn" onClick={() => void setDefault(p.id, p.defaultModel)}>
+                        Make default
+                      </button>
+                    )}
+                    <button
+                      className="vl-btn"
+                      onClick={async () => {
+                        const key = window.prompt(
+                          `New API key for ${p.label}. The old key is replaced on this device.`,
+                        );
+                        if (key?.trim()) await save(p, key.trim());
+                      }}
+                    >
+                      Rotate key
+                    </button>
+                    <button
+                      className="vl-btn"
+                      aria-label={`Remove ${p.label}`}
+                      onClick={async () => {
+                        if (window.confirm(`Remove ${p.label} and delete its key from this device?`))
+                          await remove(p.id);
+                      }}
+                    >
+                      <Trash2 size={14} /> Remove
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
-          {providers.length > 0 && <UsageCard />}
+      {providers.length > 0 && <UsageCard />}
 
-          {adding ? (
-            <AddProvider onDone={() => setAdding(providers.length === 0 && false)} />
-          ) : (
-            <button className="vl-btn" onClick={() => setAdding(true)}>
-              Add another provider
-            </button>
-          )}
-        </div>
-      </div>
-    </main>
+      {adding ? (
+        <AddProvider onDone={() => setAdding(providers.length === 0 && false)} />
+      ) : (
+        <button className="vl-btn" onClick={() => setAdding(true)}>
+          Add another provider
+        </button>
+      )}
+    </SettingsLayout>
   );
 }

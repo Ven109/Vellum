@@ -134,3 +134,27 @@ describe("current block", () => {
     editor.destroy();
   });
 });
+
+describe("repeated phrases", () => {
+  it("flags three-word phrases used more than once, within blocks only", async () => {
+    const { Editor } = await import("@tiptap/core");
+    const { findRepeatedPhrases, repeatedPhrasesKey, RepeatedPhrases } = await import("../src/repeated.js");
+    const { vellumExtensions } = await import("../src/extensions.js");
+    const editor = new Editor({
+      extensions: vellumExtensions({ extra: [RepeatedPhrases] }),
+      content:
+        "<p>At the end of the day we shipped it.</p><p>At the end of the day, nobody cared.</p><p>of the day</p><p>it is in the</p><p>it is in the</p>",
+    });
+    const phrases = new Set(findRepeatedPhrases(editor.state.doc).map((r) => r.phrase));
+    expect(phrases).toEqual(new Set(["at the end", "the end of", "end of the", "of the day"]));
+    // "of the day" is flagged in all three blocks; stop-word-only phrases are ignored.
+    expect(findRepeatedPhrases(editor.state.doc).filter((r) => r.phrase === "of the day")).toHaveLength(3);
+
+    expect(editor.view.dom.querySelectorAll(".vl-repeat")).toHaveLength(0);
+    editor.view.dispatch(editor.state.tr.setMeta(repeatedPhrasesKey, true));
+    expect(editor.view.dom.querySelectorAll(".vl-repeat").length).toBeGreaterThan(0);
+    editor.view.dispatch(editor.state.tr.setMeta(repeatedPhrasesKey, false));
+    expect(editor.view.dom.querySelectorAll(".vl-repeat")).toHaveLength(0);
+    editor.destroy();
+  });
+});

@@ -1,3 +1,4 @@
+import { SettingsLayout } from "../components/SettingsLayout.js";
 import { Check, Copy, UserMinus } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { ApiError, account } from "../data/account.js";
@@ -391,41 +392,36 @@ export function WorkspaceSettingsPage() {
   const onServer = me?.workspaces.find((w) => w.id === workspace?.id);
 
   return (
-    <main className="vl-main">
-      <div className="vl-scroll">
-        <div className="vl-settings-page">
-          <h1>Workspace and people</h1>
-          {status !== "signed-in" || !me ? (
-            <p className="vl-lede">
-              This workspace lives only on this device. Run Vellum with a server to sign in, sync between
-              devices and invite people.
-            </p>
-          ) : (
+    <SettingsLayout title="Workspace and people">
+      {status !== "signed-in" || !me ? (
+        <p className="vl-lede">
+          This workspace lives only on this device. Run Vellum with a server to sign in, sync between devices
+          and invite people.
+        </p>
+      ) : (
+        <>
+          <p className="vl-lede">
+            Signed in as <strong>{me.user.name}</strong> ({me.user.email}).{" "}
+            <button className="vl-link vl-inline-link" onClick={() => void signOut()}>
+              Sign out
+            </button>
+          </p>
+          {onServer ? (
             <>
-              <p className="vl-lede">
-                Signed in as <strong>{me.user.name}</strong> ({me.user.email}).{" "}
-                <button className="vl-link vl-inline-link" onClick={() => void signOut()}>
-                  Sign out
-                </button>
-              </p>
-              {onServer ? (
-                <>
-                  <WorkspaceCard workspaceId={onServer.id} myRole={onServer.role} />
-                  <People workspaceId={onServer.id} myRole={onServer.role} />
-                </>
-              ) : (
-                <p className="vl-lede">
-                  “{workspace?.name}” is a local workspace on this device, so it isn’t shared. Switch to a
-                  server workspace to invite people.
-                </p>
-              )}
-              {me.user.isAdmin && <AdminCard />}
+              <WorkspaceCard workspaceId={onServer.id} myRole={onServer.role} />
+              <People workspaceId={onServer.id} myRole={onServer.role} />
             </>
+          ) : (
+            <p className="vl-lede">
+              “{workspace?.name}” is a local workspace on this device, so it isn’t shared. Switch to a server
+              workspace to invite people.
+            </p>
           )}
-          <HistoryCard />
-          <ImportCard />
-        </div>
-      </div>
-    </main>
+          {me.user.isAdmin && <AdminCard />}
+        </>
+      )}
+      <HistoryCard />
+      <ImportCard />
+    </SettingsLayout>
   );
 }

@@ -1,4 +1,5 @@
 import { getProposal, proposalStats } from "@vellum/editor";
+import { useApp } from "../state/app.js";
 import { Check, RotateCcw, Square, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useDocSession } from "../state/session.js";
@@ -54,6 +55,7 @@ export function ProposalCard() {
   }
   if (!proposal) return null;
 
+  const inline = useApp.getState().workspace?.settings.behaviour.inlineSuggestions ?? true;
   const coords = editor.view.coordsAtPos(proposal.to);
   const stats = proposalStats(proposal);
   const delta = stats.added - stats.removed;
@@ -86,6 +88,11 @@ export function ProposalCard() {
         </span>
       )}
       {model && <span className="vl-muted vl-model">{model}</span>}
+      {!inline && (
+        <blockquote className="vl-proposal-preview" data-testid="proposal-preview">
+          {proposal.proposed || "…"}
+        </blockquote>
+      )}
       {streaming ? (
         <button className="vl-btn" onClick={stop}>
           <Square size={12} /> Stop

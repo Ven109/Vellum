@@ -63,3 +63,32 @@ test("rewrite shows a diff, and accept, try again and discard behave", async ({ 
   await expect(prose.locator(".vl-proposal-ins")).toHaveCount(0);
   await expect(prose).toHaveText("Every workshop has one tool that nobody ever talks about.");
 });
+
+test("with inline rewrites off, the proposal shows in its card instead of the text", async ({ page }) => {
+  await mockAnthropic(page, (body) =>
+    body.messages.at(-1)!.content.includes("ready") ? "ready" : "a tool no one names.",
+  );
+  await addAnthropicKey(page);
+  await page.goto("/settings/voice");
+  await page.getByLabel("Show rewrites inline").uncheck();
+
+  await page.goto("/library");
+  await newDraft(page);
+  await page.getByRole("textbox", { name: "Title" }).fill("Card only");
+  await page.getByRole("textbox", { name: "Title" }).press("Enter");
+  await page.keyboard.type("Every workshop has one tool that nobody ever talks about.");
+  await selectText(page, "one tool that nobody ever talks about.");
+  await page.keyboard.press("ControlOrMeta+j");
+  await page
+    .getByRole("complementary", { name: "Assistant" })
+    .getByRole("button", { name: "Tighten" })
+    .click();
+
+  const card = page.getByRole("dialog", { name: "Proposed rewrite" });
+  await expect(card.getByTestId("proposal-preview")).toHaveText("a tool no one names.");
+  const inserts = page.locator(".vl-prose .vl-proposal-ins");
+  await expect(inserts.first()).toBeAttached();
+  for (const el of await inserts.all()) await expect(el).toBeHidden();
+  await card.getByRole("button", { name: "Accept" }).click();
+  await expect(page.locator(".vl-prose")).toHaveText("Every workshop has a tool no one names.");
+});

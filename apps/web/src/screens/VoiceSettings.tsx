@@ -1,3 +1,5 @@
+import { SettingsLayout } from "../components/SettingsLayout.js";
+import { relativeTime } from "@vellum/core";
 import type { VoiceTrait } from "@vellum/core";
 import { Plus, RefreshCw, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -12,6 +14,7 @@ import {
 } from "../data/voice.js";
 import type { VoiceMeta } from "../data/voice.js";
 import { useApp } from "../state/app.js";
+import { setLeaveGuard } from "../state/router.js";
 
 function TraitChip({ trait }: { trait: VoiceTrait }) {
   const [editing, setEditing] = useState(false);
@@ -201,15 +204,133 @@ export function VoiceSettings() {
   );
 }
 
+/** "Last edited by …" for the workspace's writing settings. */
+function LastEdited() {
+  const settings = useApp((s) => s.workspace?.settings);
+  const user = useApp((s) => s.user);
+  const members = useApp((s) => s.members);
+  if (!settings?.updatedAt) return null;
+  const who =
+    settings.updatedBy === user?.id
+      ? "you"
+      : (members.find((m) => m.id === settings.updatedBy)?.name ?? "someone in this workspace");
+  return (
+    <p className="vl-muted vl-last-edited" data-testid="last-edited">
+      Last edited by {who}, {relativeTime(settings.updatedAt)}.
+    </p>
+  );
+}
+
+function HouseRules() {
+  const saved = useApp((s) => s.workspace?.settings.houseRules ?? "");
+  const updateWorkspaceSettings = useApp((s) => s.updateWorkspaceSettings);
+  const [draft, setDraft] = useState(saved);
+  const dirty = draft !== saved;
+  useEffect(() => setDraft(saved), [saved]);
+
+  // Ask before leaving with unsaved rules (in-app navigation, back button, closing the tab).
+  useEffect(() => {
+    if (!dirty) return;
+    setLeaveGuard(() => "You have unsaved house rules. Leave without saving?");
+    const onUnload = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", onUnload);
+    return () => {
+      setLeaveGuard(null);
+      window.removeEventListener("beforeunload", onUnload);
+    };
+  }, [dirty]);
+
+  const rules = draft.split("\n").filter((l) => l.trim()).length;
+  return (
+    <section className="vl-card" aria-labelledby="rules-heading">
+      <h2 id="rules-heading">House rules</h2>
+      <p className="vl-muted">
+        Plain-language rules for everything the assistant writes in this workspace — one per line. They’re
+        added to every assistant request.
+      </p>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          void updateWorkspaceSettings({ houseRules: draft.trim() });
+        }}
+      >
+        <textarea
+          className="vl-input vl-rules"
+          aria-label="House rules"
+          rows={8}
+          placeholder={"Use British spelling.\nNo exclamation marks.\nSay “people”, not “users”."}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+        />
+        <div className="vl-actions">
+          <button className="vl-btn vl-btn-primary" disabled={!dirty}>
+            Save rules
+          </button>
+          {dirty && (
+            <button type="button" className="vl-btn" onClick={() => setDraft(saved)}>
+              Discard changes
+            </button>
+          )}
+          <span className="vl-muted" role="status">
+            {dirty ? "Unsaved changes" : `${rules} ${rules === 1 ? "rule" : "rules"}`}
+          </span>
+        </div>
+      </form>
+    </section>
+  );
+}
+
+const BEHAVIOURS = [
+  {
+    key: "inlineSuggestions",
+    label: "Show rewrites inline",
+    hint: "Proposed rewrites appear as a diff in the text. When off, they’re shown only in the proposal card.",
+  },
+  {
+    key: "flagRepeatedPhrasing",
+    label: "Flag repeated phrasing",
+    hint: "Underline three-word phrases you’ve used more than once in the same piece.",
+  },
+  {
+    key: "showAssistantActivity",
+    label: "Show assistant activity",
+    hint: "Show how many assistant edits a piece has, next to its history. They’re always kept in history.",
+  },
+] as const;
+
+function Behaviour() {
+  const behaviour = useApp((s) => s.workspace?.settings.behaviour);
+  const updateWorkspaceSettings = useApp((s) => s.updateWorkspaceSettings);
+  if (!behaviour) return null;
+  return (
+    <section className="vl-card" aria-labelledby="behaviour-heading">
+      <h2 id="behaviour-heading">Assistant behaviour</h2>
+      {BEHAVIOURS.map((b) => (
+        <label key={b.key} className="vl-switch">
+          <input
+            type="checkbox"
+            checked={behaviour[b.key]}
+            onChange={(e) =>
+              void updateWorkspaceSettings({ behaviour: { ...behaviour, [b.key]: e.target.checked } })
+            }
+          />
+          <span>
+            {b.label}
+            <small className="vl-muted">{b.hint}</small>
+          </span>
+        </label>
+      ))}
+    </section>
+  );
+}
+
 export function VoiceSettingsPage() {
   return (
-    <main className="vl-main">
-      <div className="vl-scroll">
-        <div className="vl-settings-page">
-          <h1>Voice and style</h1>
-          <VoiceSettings />
-        </div>
-      </div>
-    </main>
+    <SettingsLayout title="Voice and style">
+      <LastEdited />
+      <VoiceSettings />
+      <HouseRules />
+      <Behaviour />
+    </SettingsLayout>
   );
 }

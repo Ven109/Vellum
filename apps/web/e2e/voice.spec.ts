@@ -45,8 +45,9 @@ test("learns voice traits from published pieces only and injects them into rewri
   await page.getByRole("checkbox", { name: "Select Published piece" }).check();
   await page.getByRole("region", { name: "Bulk actions" }).getByLabel("Set status").selectOption("published");
 
+  await page.getByRole("navigation", { name: "Workspace" }).getByRole("link", { name: "Settings" }).click();
   await page
-    .getByRole("navigation", { name: "Workspace" })
+    .getByRole("navigation", { name: "Settings" })
     .getByRole("link", { name: "Voice and style" })
     .click();
   const traits = page.getByRole("list", { name: "Voice traits" });
@@ -74,8 +75,9 @@ test("learns voice traits from published pieces only and injects them into rewri
   expect(system).toContain("Write in clipped, short sentences.");
 
   // Switching learning off stops the profile being used.
+  await page.getByRole("navigation", { name: "Workspace" }).getByRole("link", { name: "Settings" }).click();
   await page
-    .getByRole("navigation", { name: "Workspace" })
+    .getByRole("navigation", { name: "Settings" })
     .getByRole("link", { name: "Voice and style" })
     .click();
   await page.getByLabel(/Learn from pieces I’ve marked/).uncheck();
