@@ -100,6 +100,20 @@ const MIGRATIONS: string[] = [
      created_by TEXT NOT NULL REFERENCES users(id),
      created_at TEXT NOT NULL
    );`,
+  // 4: version history and per-workspace retention
+  `CREATE TABLE versions (
+     id TEXT PRIMARY KEY,
+     doc_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+     created_at TEXT NOT NULL,
+     author TEXT NOT NULL,
+     reason TEXT NOT NULL,
+     name TEXT,
+     title TEXT,
+     stats TEXT NOT NULL,
+     markdown TEXT NOT NULL
+   );
+   CREATE INDEX versions_doc ON versions(doc_id, created_at);
+   ALTER TABLE workspaces ADD COLUMN retention TEXT;`,
 ];
 
 export type Db = DatabaseSync;

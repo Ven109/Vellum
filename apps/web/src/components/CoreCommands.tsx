@@ -1,4 +1,15 @@
-import { Columns2, FilePlus2, FolderPlus, Library, Link2, Maximize2, SunMoon } from "lucide-react";
+import { docToMarkdown } from "@vellum/editor";
+import {
+  BookmarkPlus,
+  Columns2,
+  FilePlus2,
+  FolderPlus,
+  Library,
+  Link2,
+  Maximize2,
+  SunMoon,
+} from "lucide-react";
+import { recordVersion } from "../data/versions.js";
 import { useEffect } from "react";
 import { useApp } from "../state/app.js";
 import { useAssistant } from "../state/assistant.js";
@@ -92,6 +103,28 @@ export function CoreCommands() {
         icon: <Maximize2 size={15} />,
         when: () => currentRoute().name === "doc",
         run: () => toggleFocus(),
+      },
+      {
+        id: "history.named",
+        title: "Save a named version…",
+        section: "Commands",
+        keywords: ["checkpoint", "snapshot", "history", "milestone"],
+        icon: <BookmarkPlus size={15} />,
+        when: () => currentRoute().name === "doc" && !!useDocSession.getState().editor,
+        run: async () => {
+          const { editor, docId } = useDocSession.getState();
+          const user = useApp.getState().user;
+          if (!editor || !docId || !user) return;
+          const name = window.prompt("Name this version", "")?.trim();
+          if (!name) return;
+          await recordVersion(
+            docId,
+            docToMarkdown(editor.state.doc),
+            { kind: "user", userId: user.id },
+            "named",
+            name,
+          );
+        },
       },
       {
         id: "view.closeSplit",

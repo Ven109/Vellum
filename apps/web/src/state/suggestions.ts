@@ -1,6 +1,8 @@
 import type { Editor } from "@tiptap/core";
 import type { ShareRole } from "@vellum/core";
-import { listSuggestions } from "@vellum/editor";
+import { docToMarkdown, listSuggestions } from "@vellum/editor";
+import { recordVersion } from "../data/versions.js";
+import { useDocSession } from "./session.js";
 import type { SuggestionInfo } from "@vellum/editor";
 import { useEffect } from "react";
 import { create } from "zustand";
@@ -68,4 +70,27 @@ export function useSuggestionsBinding(editor: Editor | null, enabled: boolean) {
       useSuggestions.setState({ items: [] });
     };
   }, [editor, enabled]);
+}
+
+/**
+ * Accept suggestions and record the result as a version attributed to the suggestion's author and the
+ * person who accepted it, so reviewers' changes are visible in history.
+ */
+export function acceptWithHistory(editor: Editor, items: SuggestionInfo[]): void {
+  if (!items.length) return;
+  editor.commands.acceptSuggestions(items.map((s) => s.id));
+  const docId = useDocSession.getState().docId;
+  if (!docId) return;
+  const authors = [...new Set(items.map((s) => s.authorId).filter(Boolean))];
+  void recordVersion(
+    docId,
+    docToMarkdown(editor.state.doc),
+    {
+      kind: "suggestion",
+      suggestionId: items.map((s) => s.id).join(","),
+      suggestedBy: authors.join(",") || "unknown",
+      acceptedBy: me().id,
+    },
+    "suggestion",
+  ).catch(() => undefined);
 }

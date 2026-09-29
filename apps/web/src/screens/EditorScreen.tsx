@@ -145,6 +145,7 @@ function DocumentPane({ docId, primary, meta }: { docId: string; primary: boolea
             docId={docId}
             ydoc={live.doc}
             awareness={live.awareness}
+            live={live}
             primary={primary}
             initialMarkdown={docId === welcomeId ? WELCOME_MARKDOWN : undefined}
           />

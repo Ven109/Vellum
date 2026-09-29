@@ -2,7 +2,7 @@ import { relativeTime } from "@vellum/core";
 import type { SuggestionInfo } from "@vellum/editor";
 import { Check, X } from "lucide-react";
 import { useDocSession } from "../state/session.js";
-import { canEdit, useSuggestions } from "../state/suggestions.js";
+import { acceptWithHistory, canEdit, useSuggestions } from "../state/suggestions.js";
 
 function preview(s: SuggestionInfo) {
   return (
@@ -33,7 +33,7 @@ export function SuggestionCard({ s }: { s: SuggestionInfo }) {
       <p>{preview(s)}</p>
       {canEdit(role) && editor && (
         <div className="vl-actions" onClick={(e) => e.stopPropagation()}>
-          <button className="vl-btn" onClick={() => editor.commands.acceptSuggestions([s.id])}>
+          <button className="vl-btn" onClick={() => acceptWithHistory(editor, [s])}>
             <Check size={13} /> Accept
           </button>
           <button className="vl-btn" onClick={() => editor.commands.rejectSuggestions([s.id])}>
@@ -60,10 +60,7 @@ export function SuggestionsList() {
         <>
           {canEdit(role) && editor && (
             <div className="vl-actions vl-bulk-sug">
-              <button
-                className="vl-btn"
-                onClick={() => editor.commands.acceptSuggestions(items.map((s) => s.id))}
-              >
+              <button className="vl-btn" onClick={() => acceptWithHistory(editor, items)}>
                 Accept all
               </button>
               <button

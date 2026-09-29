@@ -161,6 +161,8 @@ export const Version = z.object({
   reason: VersionReason,
   /** Set for named checkpoints; named versions are never pruned. */
   name: z.string().optional(),
+  /** The document title at this version. */
+  title: z.string().optional(),
   stats: z.object({
     wordsAdded: z.number().int(),
     wordsRemoved: z.number().int(),

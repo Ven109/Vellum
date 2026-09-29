@@ -5,6 +5,7 @@ import { markdownToDoc, vellumExtensions } from "@vellum/editor";
 import { useApp } from "../state/app.js";
 import type { ImportedDoc } from "./importers.js";
 import { indexDocument } from "./search.js";
+import { recordVersion } from "./versions.js";
 import { acquireDoc, contentOf, releaseDoc, titleOf } from "./ydocs.js";
 
 /**
@@ -42,6 +43,16 @@ export async function createImportedDocs(
       const text = pmDoc.textBetween(0, pmDoc.content.size, "\n", " ");
       await useApp.getState().updateDocument(meta.id, { wordCount: countWords(text) });
       void indexDocument(meta.id, meta.title, text);
+      const user = useApp.getState().user;
+      if (user)
+        void recordVersion(
+          meta.id,
+          item.markdown,
+          { kind: "user", userId: user.id },
+          "import",
+          undefined,
+          meta.title,
+        ).catch(() => undefined);
     } finally {
       releaseDoc(meta.id);
     }

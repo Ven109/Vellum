@@ -2505,3 +2505,21 @@ del.vl-sug-del,
 .ProseMirror-yjs-selection {
   opacity: 0.25;
 }
+
+.vl-retention {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  align-items: center;
+}
+
+.vl-retention label {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  color: var(--ink-2);
+}
+
+.vl-retention .vl-input {
+  width: 76px;
+}

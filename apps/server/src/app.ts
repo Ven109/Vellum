@@ -15,6 +15,7 @@ import type { UserRow } from "./auth/service.js";
 import { createMailer } from "./mail.js";
 import { ReadOnlyError } from "./sharing/guard.js";
 import { sharingPlugin } from "./sharing/routes.js";
+import { historyPlugin } from "./history/routes.js";
 import { SharingService, WRITABLE_ROOTS } from "./sharing/service.js";
 import type { DocRole } from "./sharing/service.js";
 
@@ -84,6 +85,7 @@ export async function buildApp(
     env: opts.env ?? process.env,
     fetchImpl: opts.fetchImpl,
   });
+  historyPlugin(app, { db, accounts, sharing });
   sharingPlugin(app, { accounts, sharing, rooms, docs, publicUrl: config.publicUrl.replace(/\/+$/, "") });
 
   app.get("/api/health", async () => ({

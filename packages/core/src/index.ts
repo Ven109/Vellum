@@ -11,3 +11,4 @@ export * from "./search.js";
 export * from "./diff.js";
 export * from "./voice.js";
 export * from "./anchors.js";
+export * from "./history.js";
