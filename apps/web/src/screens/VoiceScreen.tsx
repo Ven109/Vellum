@@ -184,6 +184,9 @@ function InstructionCard() {
     <div className="vl-instruction-card" role="alertdialog" aria-label="Heard an instruction">
       <p className="vl-muted">Heard an instruction while writing</p>
       <p className="vl-instruction-text">“{pending.text}”</p>
+      <p className="vl-muted" data-testid="instruction-default">
+        Applying it after this sentence, unless you choose otherwise.
+      </p>
       <div className="vl-actions">
         <button className="vl-btn vl-btn-primary" onClick={applyNow}>
           Apply now
@@ -234,6 +237,11 @@ export function VoiceScreen({ docId }: { docId: string }) {
           {running && <Orb />}
           {s.muted && running ? "Muted" : STATUS_TEXT[s.status]}
         </span>
+        {s.agentSpeaking && (
+          <span className="vl-agent-speaking" data-testid="agent-speaking">
+            Vellum is speaking · talk to interrupt
+          </span>
+        )}
         <div className="vl-voice-controls">
           {running ? (
             <>

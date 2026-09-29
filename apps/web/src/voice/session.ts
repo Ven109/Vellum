@@ -115,12 +115,19 @@ export const useVoiceSession = create<VoiceSessionState>((set, get) => {
     syncLoop();
     const { actions, reply } = result.plan;
     if (reply) say(reply);
-    if (!actions.length) return;
-    if (get().agentWriting || working) {
-      // Something's being written: ask what to do with the new instruction.
+    if (get().agentWriting) {
+      if (!actions.length) {
+        // Just talk (or thinking aloud): carry on writing.
+        writer?.release();
+        return;
+      }
+      // A new instruction mid-write: by default it's applied once the current sentence is finished, so
+      // a thought is never left half-written. The card offers Apply now, Queue it or Ignore meanwhile.
       set({ pending: { turnId: result.turnId, text, actions } });
+      writer?.finishSentence();
       return;
     }
+    if (!actions.length) return;
     queue.push(actions);
     void drain();
   }
@@ -195,13 +202,22 @@ export const useVoiceSession = create<VoiceSessionState>((set, get) => {
             };
           },
         });
+        writer.onSentenceDone = () => {
+          // The sentence finished: the waiting instruction goes next.
+          const p = get().pending;
+          if (!p) return;
+          queue.unshift(p.actions);
+          set({ pending: null, queued: queue.length });
+          void drain();
+        };
         mic = await openMicrophone({
           deviceId: preferredMicrophone(),
           onLevel: (level) => set({ level }),
           onFrame: (pcm, speaking) => recognizer?.push(pcm, speaking),
           onSpeechStart: () => {
-            // You're talking: the agent stops talking at once.
+            // Barge-in: the agent stops talking at once, and writing pauses at the end of the word.
             speaker?.stop();
+            writer?.hold();
             set({ status: "hearing" });
           },
           onSpeechEnd: (turn) => {
@@ -215,9 +231,13 @@ export const useVoiceSession = create<VoiceSessionState>((set, get) => {
               async (text) => {
                 set({ interim: "" });
                 if (text) await onTurn(text);
+                else writer?.release();
                 if (get().status === "thinking") set({ status: "listening" });
               },
-              () => set({ status: "listening" }),
+              () => {
+                writer?.release();
+                set({ status: "listening" });
+              },
             );
           },
           onEnded: () => {
@@ -286,22 +306,27 @@ export const useVoiceSession = create<VoiceSessionState>((set, get) => {
     applyNow() {
       const p = get().pending;
       if (!p) return;
-      writer?.stop();
-      queue.unshift(p.actions);
       set({ pending: null });
+      queue.unshift(p.actions);
+      // Stop straight away, but not mid-word.
+      writer?.stopAtNextWord();
       void drain();
     },
 
     queueIt() {
       const p = get().pending;
       if (!p) return;
+      set({ pending: null });
       queue.push(p.actions);
-      set({ pending: null, queued: queue.length });
+      set({ queued: queue.length });
+      // Let the current piece of writing finish as planned.
+      writer?.release();
       void drain();
     },
 
     ignore() {
       set({ pending: null });
+      writer?.release();
     },
 
     editConstraint(id, label) {

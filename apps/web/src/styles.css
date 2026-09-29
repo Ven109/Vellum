@@ -4150,3 +4150,8 @@ del.vl-sug-del,
   border-radius: 2px;
   box-decoration-break: clone;
 }
+
+.vl-agent-speaking {
+  color: var(--accent);
+  font-size: 12px;
+}

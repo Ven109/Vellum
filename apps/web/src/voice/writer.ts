@@ -1,7 +1,7 @@
 import type { Editor } from "@tiptap/core";
 import type { VersionAuthor } from "@vellum/core";
 import { AGENT_META, AgentStream, docToMarkdown } from "@vellum/editor";
-import { extractJson } from "@vellum/voice";
+import { BoundaryGate, extractJson } from "@vellum/voice";
 import type { Llm, WriteAction } from "@vellum/voice";
 import { recordVersion } from "../data/versions.js";
 
@@ -42,7 +42,13 @@ function paragraphs(editor: Editor) {
  */
 export class DocWriter {
   private controller: AbortController | null = null;
+  private gate: BoundaryGate | null = null;
+  private stream: AgentStream | null = null;
+  private stopAtWord = false;
+  private decided: (() => void) | null = null;
   writing = false;
+  /** Called when a "finish the sentence, then stop" completes. */
+  onSentenceDone?: () => void;
 
   constructor(private readonly o: WriterOptions) {}
 
@@ -53,6 +59,46 @@ export class DocWriter {
 
   stop() {
     this.controller?.abort();
+    this.wake();
+  }
+
+  private wake() {
+    const d = this.decided;
+    this.decided = null;
+    d?.();
+  }
+
+  /** You started talking: finish the word being written, then hold the rest. */
+  hold() {
+    this.gate?.set("word");
+  }
+
+  /** Carry on writing what was held. */
+  release() {
+    const text = this.gate?.release();
+    if (text) this.stream?.write(text);
+    this.wake();
+  }
+
+  /** Finish the current sentence, then stop (a new instruction goes next). */
+  finishSentence() {
+    const gate = this.gate;
+    if (!gate) return this.onSentenceDone?.();
+    gate.set("sentence");
+    // Anything already held may complete the sentence straight away.
+    const r = gate.feed("");
+    if (r.write) this.stream?.write(r.write);
+    if (r.stop) this.controller?.abort();
+    this.wake();
+  }
+
+  /** Stop now, but not mid-word. */
+  stopAtNextWord() {
+    const gate = this.gate;
+    if (!gate) return this.stop();
+    gate.set("word");
+    if (gate.holding) this.stop();
+    else this.stopAtWord = true;
   }
 
   /**
@@ -134,9 +180,18 @@ export class DocWriter {
       : "";
     const user = `${action.instruction}${material}\n\nThe draft so far:\n<draft>\n${draft || "(empty)"}\n</draft>\n\n${COMPOSE_TAIL}`;
     const stream = new AgentStream(editor);
+    const gate = new BoundaryGate();
+    this.stream = stream;
+    this.gate = gate;
+    this.stopAtWord = false;
     stream.onYield = () => this.controller?.abort();
     stream.begin("end");
     let first = true;
+    const settle = () => {
+      this.stream = null;
+      this.gate = null;
+      if (gate.done) this.onSentenceDone?.();
+    };
     try {
       for await (let chunk of llm({
         system: this.o.system(),
@@ -146,17 +201,39 @@ export class DocWriter {
       })) {
         if (first) chunk = chunk.replace(/^\s*["“]/, "");
         first = false;
-        stream.write(chunk);
+        const r = gate.feed(chunk);
+        if (r.write) stream.write(r.write);
+        if (r.stop || (this.stopAtWord && gate.holding)) {
+          this.controller?.abort();
+          break;
+        }
+      }
+      // The model finished while writing was held for you: wait to hear whether to carry on.
+      while (gate.holding && gate.pending && !signal.aborted) {
+        await new Promise<void>((resolve) => (this.decided = resolve));
+        if (gate.state === "sentence" && !gate.done) {
+          const r = gate.feed("");
+          if (r.write) stream.write(r.write);
+        }
       }
     } catch (e) {
-      if (stream.result === "yielded") return YIELD_NOTE;
-      // Stopped (pause, take over, a new instruction): keep what was written.
-      stream.end("stopped");
-      throw e;
+      if (stream.result === "yielded") {
+        settle();
+        return YIELD_NOTE;
+      }
+      if (!signal.aborted) {
+        stream.end("stopped");
+        settle();
+        throw e;
+      }
     }
-    if (stream.result === "yielded") return YIELD_NOTE;
-    stream.end("done");
-    return stream.hasWritten ? "" : "I didn't have anything to add there.";
+    if (stream.result === "yielded") {
+      settle();
+      return YIELD_NOTE;
+    }
+    stream.end(signal.aborted ? "stopped" : "done");
+    settle();
+    return stream.hasWritten || signal.aborted ? "" : "I didn't have anything to add there.";
   }
 
   private async revise(editor: Editor, llm: Llm, instruction: string, signal: AbortSignal) {

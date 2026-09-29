@@ -3,3 +3,4 @@ export * from "./intent.js";
 export * from "./state.js";
 export * from "./llm.js";
 export * from "./loop.js";
+export * from "./gate.js";

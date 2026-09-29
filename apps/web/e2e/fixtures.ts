@@ -46,7 +46,10 @@ export async function mockAnthropic(
   reply: (body: {
     messages: Array<{ role: string; content: string }>;
     system?: string;
-  }) => string | { status: number; error: { type: string; message: string }; retryAfter?: number },
+  }) =>
+    | string
+    | { status: number; error: { type: string; message: string }; retryAfter?: number }
+    | Promise<string>,
   seen: Array<{ headers: Record<string, string>; body: unknown }> = [],
 ) {
   await page.route("https://api.anthropic.com/**", async (route: Route) => {
@@ -57,7 +60,7 @@ export async function mockAnthropic(
       system?: string;
     };
     seen.push({ headers: req.headers(), body });
-    const out = reply(body);
+    const out = await reply(body);
     if (typeof out !== "string") {
       return route.fulfill({
         status: out.status,
