@@ -1647,3 +1647,66 @@ button.vl-wordcount:hover {
 .vl-usage-table td {
   padding: 6px 8px;
 }
+
+/* Voice */
+.vl-switch {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+
+.vl-switch input {
+  margin-top: 3px;
+}
+
+.vl-switch small {
+  display: block;
+  margin-top: 2px;
+}
+
+.vl-traits {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vl-trait {
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  opacity: 0.6;
+}
+
+.vl-trait[data-enabled] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  opacity: 1;
+}
+
+.vl-trait-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vl-trait-toggle {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+}
+
+.vl-trait p {
+  margin: 4px 0 0 24px;
+  font-size: 13px;
+}
+
+.vl-trait-edit {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0;
+}

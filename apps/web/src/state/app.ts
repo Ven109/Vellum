@@ -121,6 +121,10 @@ export const useApp = create<AppState>((set, get) => {
       });
       if (patch.title !== undefined && patch.title !== current.title)
         void updateIndexedTitle(id, patch.title);
+      // Publishing (or unpublishing) changes what the voice profile learns from.
+      if (patch.status !== undefined && (patch.status === "published") !== (current.status === "published")) {
+        void import("../data/voice.js").then((v) => v.relearnVoice());
+      }
       // Persist the latest merged state, one write at a time per document.
       const prev = writes.get(id) ?? Promise.resolve();
       const write = prev.then(async () => {
@@ -195,17 +199,14 @@ export const useApp = create<AppState>((set, get) => {
     async updateWorkspaceSettings(patch) {
       const { repo, workspace, user } = get();
       if (!workspace) return;
+      const current = get().workspace ?? workspace;
       const next: Workspace = {
-        ...workspace,
-        settings: {
-          ...workspace.settings,
-          ...patch,
-          updatedAt: new Date().toISOString(),
-          updatedBy: user?.id,
-        },
+        ...current,
+        settings: { ...current.settings, ...patch, updatedAt: new Date().toISOString(), updatedBy: user?.id },
       };
-      await repo.putWorkspace(next);
+      // Update the UI first, then persist.
       set({ workspace: next, workspaces: get().workspaces.map((w) => (w.id === next.id ? next : w)) });
+      await repo.putWorkspace(next);
     },
 
     async switchWorkspace(id) {

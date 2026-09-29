@@ -6,6 +6,7 @@ import { Sidebar } from "./components/Sidebar.js";
 import { EditorScreen } from "./screens/EditorScreen.js";
 import { LibraryScreen } from "./screens/LibraryScreen.js";
 import { ProviderSettings } from "./screens/ProviderSettings.js";
+import { VoiceSettingsPage } from "./screens/VoiceSettings.js";
 import { useApp } from "./state/app.js";
 import { navigate, useRoute } from "./state/router.js";
 
@@ -54,6 +55,7 @@ function Screen() {
   if (route.name === "doc") return <EditorScreen key={route.id} docId={route.id} splitId={route.split} />;
   if (route.name === "screen" && route.path === "/library") return <LibraryScreen />;
   if (route.name === "screen" && route.path === "/settings/ai") return <ProviderSettings />;
+  if (route.name === "screen" && route.path === "/settings/voice") return <VoiceSettingsPage />;
   return (
     <main className="vl-main vl-empty">
       <p>Page not found.</p>
