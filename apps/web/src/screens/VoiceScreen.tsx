@@ -87,8 +87,11 @@ function ConstraintChip({ c }: { c: Constraint }) {
   );
 }
 
+const timeOf = (at: number) => new Date(at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
 function Transcript() {
   const turns = useVoiceSession((s) => s.turns);
+  const focused = useVoiceSession((s) => s.focusedTurn);
   const interim = useVoiceSession((s) => s.interim);
   const constraints = useVoiceSession((s) => s.constraints);
   const end = useRef<HTMLDivElement>(null);
@@ -96,6 +99,9 @@ function Transcript() {
   useEffect(() => {
     end.current?.scrollIntoView({ block: "end" });
   }, [turns.length, interim]);
+  useEffect(() => {
+    if (focused) document.getElementById(`turn-${focused}`)?.scrollIntoView({ block: "nearest" });
+  }, [focused]);
   return (
     <section className="vl-voice-transcript" aria-label="Conversation">
       {constraints.length > 0 && (
@@ -113,8 +119,20 @@ function Transcript() {
           </li>
         )}
         {turns.map((t) => (
-          <li key={t.id} className="vl-turn" data-speaker={t.speaker}>
-            <span className="vl-turn-who">{t.speaker === "you" ? "You" : "Vellum"}</span>
+          <li
+            key={t.id}
+            id={`turn-${t.id}`}
+            className="vl-turn"
+            data-speaker={t.speaker}
+            aria-current={focused === t.id ? "true" : undefined}
+            onClick={() =>
+              t.speaker === "you" && useVoiceSession.getState().focusTurn(focused === t.id ? null : t.id)
+            }
+          >
+            <span className="vl-turn-who">
+              {t.speaker === "you" ? "You" : "Vellum"}{" "}
+              <time dateTime={new Date(t.at).toISOString()}>{timeOf(t.at)}</time>
+            </span>
             <p>{t.text}</p>
             {t.intents?.length ? (
               <span className="vl-turn-tags">{t.intents.map((i) => INTENT_LABEL[i]).join(" · ")}</span>
@@ -208,8 +226,15 @@ export function VoiceScreen({ docId }: { docId: string }) {
   const s = useVoiceSession();
   const running = s.status !== "idle" && s.status !== "error";
 
-  // Leaving the screen ends the session.
-  useEffect(() => () => void useVoiceSession.getState().end(), [docId]);
+  // The transcript is shown before a session starts and after it ends; leaving the screen ends it.
+  useEffect(() => {
+    void useVoiceSession.getState().open(docId);
+    return () => {
+      const session = useVoiceSession.getState();
+      void session.end();
+      session.close();
+    };
+  }, [docId]);
 
   if (!meta) {
     return (
@@ -305,7 +330,17 @@ export function VoiceScreen({ docId }: { docId: string }) {
               </button>
             )}
           </div>
-          <div className="vl-scroll">
+          {s.focusedTurn && (
+            <style>{`.vl-voice-doc [data-turn="${CSS.escape(s.focusedTurn)}"] { background: var(--ai); box-shadow: -8px 0 0 var(--ai); }`}</style>
+          )}
+          <div
+            className="vl-scroll"
+            onClick={(e) => {
+              // Click a paragraph the agent wrote to see the turn it came from.
+              const el = (e.target as HTMLElement).closest("[data-turn]");
+              useVoiceSession.getState().focusTurn(el?.getAttribute("data-turn") ?? null);
+            }}
+          >
             <DocumentPane docId={docId} primary meta={meta} />
           </div>
         </section>

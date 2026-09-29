@@ -133,14 +133,14 @@ export class DocWriter {
 
   private async act(editor: Editor, action: WriteAction): Promise<string> {
     if (action.type === "insert") {
-      this.insertParagraph(editor, action.text, action.position === "start" ? "start" : "end");
+      this.insertParagraph(editor, action.text, action.position === "start" ? "start" : "end", action.turnId);
       return "";
     }
     const llm = this.o.llm();
     if (!llm) {
       // Without an AI provider the words still land on the page.
       if (action.type === "compose" && action.material.length) {
-        this.insertParagraph(editor, action.material.join(" "), "end");
+        this.insertParagraph(editor, action.material.join(" "), "end", action.turnId);
         return "";
       }
       return "Drafting and revising need an AI provider. I'm writing down what you say for now.";
@@ -151,7 +151,7 @@ export class DocWriter {
     try {
       return action.type === "compose"
         ? await this.compose(editor, llm, action, controller.signal)
-        : await this.revise(editor, llm, action.instruction, controller.signal);
+        : await this.revise(editor, llm, action.instruction, controller.signal, action.turnId);
     } catch (e) {
       if ((e as { name?: string })?.name === "AbortError" || controller.signal.aborted) return "";
       return `I couldn't write that: ${(e as Error).message}`;
@@ -161,9 +161,9 @@ export class DocWriter {
     }
   }
 
-  private insertParagraph(editor: Editor, text: string, where: "start" | "end") {
+  private insertParagraph(editor: Editor, text: string, where: "start" | "end", turnId?: string) {
     const s = new AgentStream(editor);
-    s.begin(where);
+    s.begin(where, turnId);
     s.write(text);
     s.end();
   }
@@ -185,7 +185,7 @@ export class DocWriter {
     this.gate = gate;
     this.stopAtWord = false;
     stream.onYield = () => this.controller?.abort();
-    stream.begin("end");
+    stream.begin("end", action.turnId);
     let first = true;
     const settle = () => {
       this.stream = null;
@@ -236,7 +236,7 @@ export class DocWriter {
     return stream.hasWritten || signal.aborted ? "" : "I didn't have anything to add there.";
   }
 
-  private async revise(editor: Editor, llm: Llm, instruction: string, signal: AbortSignal) {
+  private async revise(editor: Editor, llm: Llm, instruction: string, signal: AbortSignal, turnId: string) {
     const list = paragraphs(editor);
     if (!list.some((p) => p.text.trim())) return "There's nothing to change yet.";
     const numbered = list.map((p) => `[${p.n}] ${p.text}`).join("\n\n");
@@ -261,7 +261,11 @@ export class DocWriter {
       if (!p) continue;
       const text = e.text!.trim();
       if (!text) tr.delete(p.pos, p.pos + p.size);
-      else tr.replaceWith(p.pos + 1, p.pos + p.size - 1, editor.schema.text(text));
+      else {
+        tr.replaceWith(p.pos + 1, p.pos + p.size - 1, editor.schema.text(text));
+        // The paragraph now comes from this instruction.
+        tr.setNodeAttribute(p.pos, "turnId", turnId);
+      }
     }
     tr.setMeta(AGENT_META, true);
     editor.view.dispatch(tr);

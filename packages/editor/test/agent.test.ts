@@ -102,3 +102,36 @@ describe("AgentStream", () => {
     expect(seen.every(Boolean)).toBe(true);
   });
 });
+
+describe("turn links", () => {
+  const turns = (ed: Editor) => {
+    const out: Array<string | null> = [];
+    ed.state.doc.forEach((n) => out.push((n.attrs.turnId as string | null) ?? null));
+    return out;
+  };
+
+  it("paragraphs the agent writes remember the turn that produced them", () => {
+    editor = createEditor("<p>Mine.</p>");
+    const s = new AgentStream(editor);
+    s.begin("end", "turn_1");
+    s.write("First.\n\nSecond.");
+    s.end();
+    expect(turns(editor)).toEqual([null, "turn_1", "turn_1"]);
+    expect(editor.getHTML()).toContain('<p data-turn="turn_1">First.</p>');
+    // Not part of the portable text.
+    expect(docToMarkdown(editor.state.doc).trim()).toBe("Mine.\n\nFirst.\n\nSecond.");
+  });
+
+  it("also when writing into an empty document, and it survives a round trip through HTML", () => {
+    editor = createEditor("");
+    const s = new AgentStream(editor);
+    s.begin("end", "turn_2");
+    s.write("Only.");
+    s.end();
+    expect(turns(editor)).toEqual(["turn_2"]);
+    const html = editor.getHTML();
+    editor.destroy();
+    editor = createEditor(html);
+    expect(turns(editor)).toEqual(["turn_2"]);
+  });
+});

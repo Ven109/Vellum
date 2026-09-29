@@ -1,3 +1,4 @@
+import { turnLinks } from "./turnLinks.js";
 import Collaboration from "@tiptap/extension-collaboration";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { documentStats } from "@vellum/core";
@@ -72,6 +73,7 @@ export function DocumentEditor({ docId, ydoc, awareness, live, initialMarkdown, 
           Collaboration.configure({ document: ydoc, field: "content" }),
           CurrentBlock,
           RepeatedPhrases.configure({ enabled: flagRepeated }),
+          turnLinks(ydoc),
           ...(awareness && primary ? [presenceExtension(awareness)] : []),
         ],
       }),

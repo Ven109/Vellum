@@ -1,4 +1,4 @@
-import { Mark, mergeAttributes } from "@tiptap/core";
+import { Extension, Mark, mergeAttributes } from "@tiptap/core";
 import type { Editor } from "@tiptap/core";
 import type { Transaction } from "@tiptap/pm/state";
 
@@ -21,6 +21,28 @@ export const AgentText = Mark.create({
   },
 });
 
+/**
+ * Paragraphs the voice agent wrote remember the spoken turn that produced them (`data-turn`), so the
+ * writer can trace any paragraph back to what they said. Stored in the document; not in Markdown.
+ */
+export const TurnLink = Extension.create({
+  name: "turnLink",
+  addGlobalAttributes() {
+    return [
+      {
+        types: ["paragraph", "heading"],
+        attributes: {
+          turnId: {
+            default: null,
+            parseHTML: (el) => el.getAttribute("data-turn"),
+            renderHTML: (attrs) => (attrs.turnId ? { "data-turn": attrs.turnId as string } : {}),
+          },
+        },
+      },
+    ];
+  },
+});
+
 export const isAgentTransaction = (tr: Transaction) => tr.getMeta(AGENT_META) === true;
 
 export type AgentStreamEnd = "done" | "stopped" | "yielded";
@@ -36,6 +58,7 @@ export class AgentStream {
   private para: { from: number; to: number } | null = null;
   private written: Array<{ from: number; to: number }> = [];
   private state: "idle" | "writing" | AgentStreamEnd = "idle";
+  private turnId: string | null = null;
   private readonly onTransaction: (p: { transaction: Transaction }) => void;
   onYield?: () => void;
 
@@ -85,18 +108,28 @@ export class AgentStream {
     this.editor.view.dispatch(tr);
   }
 
-  /** Open a new paragraph to write into: at the end of the document, or at the start. */
-  begin(where: "start" | "end" = "end") {
+  private paragraphAttrs() {
+    return this.turnId ? { turnId: this.turnId } : {};
+  }
+
+  /**
+   * Open a new paragraph to write into: at the end of the document, or at the start. `turnId` links the
+   * paragraphs written to the spoken turn they came from.
+   */
+  begin(where: "start" | "end" = "end", turnId?: string) {
+    this.turnId = turnId ?? null;
     const { state } = this.editor;
     const { doc, schema } = state;
     const tr = state.tr;
     const first = doc.firstChild;
     const onlyEmpty = doc.childCount === 1 && first?.isTextblock && first.content.size === 0;
     let start: number;
-    if (onlyEmpty) start = 1;
-    else {
+    if (onlyEmpty) {
+      start = 1;
+      if (this.turnId && first) tr.setNodeMarkup(0, undefined, { ...first.attrs, ...this.paragraphAttrs() });
+    } else {
       const at = where === "start" ? 0 : doc.content.size;
-      tr.insert(at, schema.nodes.paragraph!.create());
+      tr.insert(at, schema.nodes.paragraph!.create(this.paragraphAttrs()));
       start = at + 1;
     }
     this.dispatch(tr);
@@ -133,7 +166,7 @@ export class AgentStream {
     // Nothing written in this paragraph yet: keep using it.
     if ($pos.parent.content.size === 0) return;
     const after = $pos.after();
-    const tr = state.tr.insert(after, state.schema.nodes.paragraph!.create());
+    const tr = state.tr.insert(after, state.schema.nodes.paragraph!.create(this.paragraphAttrs()));
     this.dispatch(tr);
     this.pos = after + 1;
     this.para = { from: this.pos, to: this.pos };

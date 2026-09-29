@@ -2,7 +2,7 @@ import type { AnyExtension } from "@tiptap/core";
 import Image from "@tiptap/extension-image";
 import { Placeholder } from "@tiptap/extensions";
 import StarterKit from "@tiptap/starter-kit";
-import { AgentText } from "./agent.js";
+import { AgentText, TurnLink } from "./agent.js";
 import { Annotations } from "./annotations.js";
 import { MarkdownPaste } from "./paste.js";
 import { RewriteProposal } from "./proposal.js";
@@ -36,6 +36,7 @@ export function vellumExtensions(options: VellumExtensionOptions = {}): AnyExten
     Placeholder.configure({ placeholder: options.placeholder ?? "Start writing…" }),
     Annotations,
     AgentText,
+    TurnLink,
     MarkdownPaste,
     RewriteProposal,
     Suggestions,

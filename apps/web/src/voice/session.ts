@@ -14,6 +14,9 @@ import { openRecognizer, ttsConfig, useSpeech } from "../data/speech.js";
 import { assistantContext } from "../state/assistant.js";
 import { useApp } from "../state/app.js";
 import { useDocSession } from "../state/session.js";
+import { acquireDoc, releaseDoc } from "../data/ydocs.js";
+import type { LiveDoc } from "../data/ydocs.js";
+import { loadConversation, observeConversation, saveConversation } from "../data/transcript.js";
 import { MicrophoneError, openMicrophone, preferredMicrophone } from "./capture.js";
 import type { MicSession } from "./capture.js";
 import { voiceModel } from "./llm.js";
@@ -37,6 +40,12 @@ export interface VoiceStack {
 
 interface VoiceSessionState {
   docId: string | null;
+  /** The turn a clicked paragraph came from (highlighted in the transcript). */
+  focusedTurn: string | null;
+  /** Load a document's transcript (the screen shows it before and after a session). */
+  open(docId: string): Promise<void>;
+  close(): void;
+  focusTurn(turnId: string | null): void;
   status: VoiceStatus;
   error: string | null;
   muted: boolean;
@@ -77,11 +86,16 @@ let speaker: Speaker | null = null;
 let model: { llm: Llm; label: string; model: string } | null = null;
 let meter = new LatencyMeter();
 let queue: WriteAction[][] = [];
+let doc: { id: string; live: LiveDoc; unobserve: () => void } | null = null;
+let opening = 0;
 let working = false;
 
 export const useVoiceSession = create<VoiceSessionState>((set, get) => {
   function syncLoop() {
-    if (loop) set({ turns: loop.state.turns, constraints: loop.state.constraints });
+    if (!loop) return;
+    set({ turns: loop.state.turns, constraints: loop.state.constraints });
+    // Kept with the document, so the brief and the conversation can be picked up later.
+    if (doc) saveConversation(doc.live.doc, loop.state);
   }
 
   function say(text: string) {
@@ -134,6 +148,7 @@ export const useVoiceSession = create<VoiceSessionState>((set, get) => {
 
   return {
     docId: null,
+    focusedTurn: null,
     status: "idle",
     error: null,
     muted: false,
@@ -149,17 +164,46 @@ export const useVoiceSession = create<VoiceSessionState>((set, get) => {
     latency: null,
     stack: null,
 
+    async open(docId) {
+      if (doc?.id === docId) return;
+      get().close();
+      const mine = ++opening;
+      const live = acquireDoc(docId);
+      await live.whenLoaded;
+      if (mine !== opening) {
+        // Closed or reopened while loading.
+        releaseDoc(docId);
+        return;
+      }
+      const refresh = () => {
+        // Another device (or tab) added to the transcript while no session runs here.
+        if (get().status !== "idle" && get().status !== "error") return;
+        const state = loadConversation(live.doc);
+        set({ turns: state.turns, constraints: state.constraints });
+      };
+      doc = { id: docId, live, unobserve: observeConversation(live.doc, refresh) };
+      set({ docId });
+      refresh();
+    },
+
+    close() {
+      opening++;
+      if (!doc) return;
+      doc.unobserve();
+      releaseDoc(doc.id);
+      doc = null;
+      loop = null;
+      set({ docId: null, turns: [], constraints: [], focusedTurn: null });
+    },
+
+    focusTurn(turnId) {
+      set({ focusedTurn: turnId });
+    },
+
     async start(docId) {
       if (get().status !== "idle" && get().status !== "error") return;
-      set({
-        docId,
-        status: "starting",
-        error: null,
-        turns: [],
-        constraints: [],
-        pending: null,
-        latency: null,
-      });
+      await get().open(docId);
+      set({ docId, status: "starting", error: null, pending: null, latency: null });
       meter = new LatencyMeter();
       queue = [];
       try {
@@ -175,7 +219,11 @@ export const useVoiceSession = create<VoiceSessionState>((set, get) => {
           return;
         }
         model = await voiceModel().catch(() => null);
-        loop = new ConversationLoop(model ? { llm: model.llm } : {});
+        // Pick up where the last session on this document left off: brief, constraints and turns.
+        loop = new ConversationLoop(
+          model ? { llm: model.llm } : {},
+          doc ? loadConversation(doc.live.doc) : undefined,
+        );
         speaker = new Speaker(await ttsConfig());
         speaker.onState = (s) => set({ agentSpeaking: s !== "idle" });
         writer = new DocWriter({
