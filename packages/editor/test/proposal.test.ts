@@ -117,3 +117,20 @@ describe("relocate", () => {
     expect(relocate(doc, "a\nb", 0)).toBeNull();
   });
 });
+
+describe("current block", () => {
+  it("marks only the top-level block with the cursor", async () => {
+    const { Editor } = await import("@tiptap/core");
+    const { CurrentBlock } = await import("../src/focus.js");
+    const { vellumExtensions } = await import("../src/extensions.js");
+    const editor = new Editor({
+      extensions: vellumExtensions({ extra: [CurrentBlock] }),
+      content: "<p>one</p><blockquote><p>two</p></blockquote><p>three</p>",
+    });
+    editor.commands.setTextSelection(8);
+    const marked = editor.view.dom.querySelectorAll(".vl-current-block");
+    expect(marked).toHaveLength(1);
+    expect(marked[0]!.tagName).toBe("BLOCKQUOTE");
+    editor.destroy();
+  });
+});

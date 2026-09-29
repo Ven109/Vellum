@@ -1,6 +1,16 @@
 import { formatReadingTime } from "@vellum/core";
 import type { DocumentMeta } from "@vellum/core";
-import { Check, CloudOff, Loader2, MessagesSquare, Share2, Sparkles, TriangleAlert } from "lucide-react";
+import {
+  Check,
+  CloudOff,
+  Loader2,
+  Maximize2,
+  MessagesSquare,
+  Share2,
+  Sparkles,
+  TriangleAlert,
+} from "lucide-react";
+import { toggleFocus } from "./CoreCommands.js";
 import { useAssistant } from "../state/assistant.js";
 import { ModeSwitch } from "./SuggestionsList.js";
 import { useReview } from "./ReviewPanel.js";
@@ -101,17 +111,19 @@ export function TopBar({ doc }: { doc: DocumentMeta }) {
         </div>
         <button
           className="vl-btn"
+          aria-label={reviewCount > 0 ? `Review, ${reviewCount} open` : "Review"}
           aria-pressed={reviewOpen}
           onClick={() => {
             useAssistant.getState().setOpen(false);
             useReview.getState().setOpen(!reviewOpen);
           }}
         >
-          <MessagesSquare size={14} /> Review
+          <MessagesSquare size={14} /> <span className="vl-btn-label">Review</span>
           {reviewCount > 0 && <span className="vl-count-pill">{reviewCount}</span>}
         </button>
         <button
           className="vl-btn"
+          aria-label="Assistant"
           aria-pressed={assistantOpen}
           title="Assistant (Ctrl/⌘ J)"
           onClick={() => {
@@ -119,10 +131,22 @@ export function TopBar({ doc }: { doc: DocumentMeta }) {
             useAssistant.getState().toggle();
           }}
         >
-          <Sparkles size={14} /> Assistant
+          <Sparkles size={14} /> <span className="vl-btn-label">Assistant</span>
         </button>
-        <button className="vl-btn vl-btn-primary" onClick={() => void share()}>
-          <Share2 size={14} /> {copied ? "Link copied" : "Share"}
+        <button
+          className="vl-icon-btn"
+          aria-label="Focus mode"
+          title="Focus mode (Ctrl/⌘ Shift F)"
+          onClick={toggleFocus}
+        >
+          <Maximize2 size={15} />
+        </button>
+        <button
+          className="vl-btn vl-btn-primary"
+          aria-label={copied ? "Link copied" : "Share"}
+          onClick={() => void share()}
+        >
+          <Share2 size={14} /> <span className="vl-btn-label">{copied ? "Link copied" : "Share"}</span>
         </button>
       </div>
     </header>

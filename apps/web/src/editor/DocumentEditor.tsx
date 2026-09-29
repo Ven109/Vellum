@@ -1,7 +1,7 @@
 import Collaboration from "@tiptap/extension-collaboration";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { documentStats } from "@vellum/core";
-import { markdownToDoc, vellumExtensions } from "@vellum/editor";
+import { CurrentBlock, markdownToDoc, vellumExtensions } from "@vellum/editor";
 import { useEffect, useRef } from "react";
 import type * as Y from "yjs";
 import { indexDocument } from "../data/search.js";
@@ -39,7 +39,7 @@ export function DocumentEditor({ docId, ydoc, initialMarkdown, primary = true }:
     {
       extensions: vellumExtensions({
         collaborative: true,
-        extra: [Collaboration.configure({ document: ydoc, field: "content" })],
+        extra: [Collaboration.configure({ document: ydoc, field: "content" }), CurrentBlock],
       }),
       editorProps: {
         attributes: { class: "vl-prose", "aria-label": "Document body", spellcheck: "true" },

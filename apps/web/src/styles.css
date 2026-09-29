@@ -347,6 +347,7 @@ kbd {
 
 /* Top bar */
 .vl-topbar {
+  container-type: inline-size;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -375,7 +376,28 @@ kbd {
   display: flex;
   align-items: center;
   gap: 14px;
-  flex: none;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.vl-topbar .vl-breadcrumb {
+  flex: 1 1 auto;
+  min-width: 96px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Narrow editor column: icon-only buttons, no reading time. */
+@container (max-width: 880px) {
+  .vl-topbar .vl-btn-label,
+  .vl-topbar .vl-readtime {
+    display: none;
+  }
+
+  .vl-topbar-right {
+    gap: 8px;
+  }
 }
 
 .vl-save {
@@ -398,6 +420,7 @@ kbd {
   color: var(--muted);
   font-size: 13px;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .vl-avatars {
@@ -2019,6 +2042,11 @@ del.vl-sug-del,
   gap: 14px;
 }
 
+.vl-auth-form > .vl-btn {
+  justify-content: center;
+  padding-block: 8px;
+}
+
 .vl-auth-field {
   display: grid;
   gap: 6px;
@@ -2172,4 +2200,155 @@ del.vl-sug-del,
   margin-top: 8px;
   color: var(--ink-2);
   font-size: 13px;
+}
+
+/* Focus mode: dark, chrome-free */
+.vl-app[data-focus] {
+  --paper: #121110;
+  --panel: #1a1816;
+  --panel-2: #23201c;
+  --ink: #e9e2d6;
+  --ink-2: #c2b9ab;
+  --muted: #7d766b;
+  --line: #2e2a24;
+  --accent: #f08a5d;
+  --accent-ink: #1a0e07;
+  --accent-soft: #3a2418;
+  --insert: #16361f;
+  --insert-ink: #b8f0c6;
+  --delete: #3d1a1a;
+  --delete-ink: #ffc9c9;
+  --comment: #3b3317;
+  --ai: #2a2744;
+  grid-template-columns: minmax(0, 1fr) auto;
+  background: var(--paper);
+  color: var(--ink);
+  color-scheme: dark;
+}
+
+.vl-app[data-focus] > .vl-sidebar {
+  display: none;
+}
+
+.vl-main[data-focus] {
+  position: relative;
+  background: var(--paper);
+}
+
+.vl-main[data-focus] .vl-column {
+  padding-top: 18vh;
+}
+
+.vl-main[data-dimming="typewriter"] .vl-column {
+  padding-top: 45vh;
+  padding-bottom: 55vh;
+}
+
+.vl-main[data-dimming="typewriter"] .vl-prose > *,
+.vl-main[data-dimming="paragraph"] .vl-prose > * {
+  opacity: 0.32;
+  transition: opacity 180ms ease;
+}
+
+.vl-main[data-dimming="typewriter"] .vl-prose > .vl-current-block,
+.vl-main[data-dimming="paragraph"] .vl-prose > .vl-current-block,
+.vl-main[data-dimming] .vl-prose:not(.ProseMirror-focused) > * {
+  opacity: 1;
+}
+
+.vl-hud {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  align-items: center;
+  justify-content: center;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+  color: var(--ink-2);
+  font-size: 13px;
+  transform: translateX(-50%);
+  transition: opacity 400ms ease;
+}
+
+.vl-hud[data-quiet] {
+  opacity: 0.18;
+}
+
+.vl-hud:hover,
+.vl-hud:focus-within {
+  opacity: 1;
+}
+
+.vl-hud-btn {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  padding: 3px 8px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: inherit;
+}
+
+.vl-hud-btn:hover,
+.vl-hud-btn[aria-checked="true"] {
+  background: var(--panel-2);
+  color: var(--ink);
+}
+
+.vl-hud-group {
+  display: inline-flex;
+  gap: 2px;
+  align-items: center;
+}
+
+.vl-hud-clock {
+  font-variant-numeric: tabular-nums;
+}
+
+.vl-hud-dim {
+  color: var(--muted);
+}
+
+.vl-hud-goal {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.vl-hud-progress {
+  position: relative;
+  width: 72px;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--line);
+}
+
+.vl-hud-progress > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--accent);
+}
+
+.vl-hud-input {
+  width: 72px;
+  padding: 2px 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--paper);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vl-hud,
+  .vl-main[data-dimming] .vl-prose > * {
+    transition: none;
+  }
 }
