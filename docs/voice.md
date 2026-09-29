@@ -115,6 +115,13 @@ Then choose **Start talking**. The screen has three parts:
 If you give an instruction while the agent is writing, a card asks what to do: **Apply now**,
 **Queue it** or **Ignore**.
 
+On a phone, start a session from the microphone button in the formatting bar. The draft and the
+conversation don't fit side by side, so a **Draft / Transcript** switch shows one at a time (the draft
+first). Mute, a live level orb and **End session** sit in a dock at the bottom of the screen. The
+instruction card offers just **Apply now** and **Queue it**. If you do nothing, the instruction still
+applies after the current sentence. Sessions carry on when the screen locks (see
+[Hands-free](#hands-free)).
+
 Without an AI provider, voice mode still writes down what you say, but it can't draft or revise.
 
 ## Writing into the live document

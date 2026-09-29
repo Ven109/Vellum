@@ -1,9 +1,10 @@
 import type { Editor } from "@tiptap/core";
-import { ChevronDown, List, ListOrdered, MessageSquarePlus, Redo2, Sparkles, Undo2 } from "lucide-react";
+import { ChevronDown, List, ListOrdered, MessageSquarePlus, Mic, Redo2, Sparkles, Undo2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useComments } from "../state/comments.js";
 import { useAssistant } from "../state/assistant.js";
 import { useKeyboardInset } from "../state/mobile.js";
+import { navigate, voicePath } from "../state/router.js";
 import { canSuggest, useSuggestions } from "../state/suggestions.js";
 import { FORMAT_ACTIONS } from "./SelectionToolbar.js";
 import type { ToolbarAction } from "./SelectionToolbar.js";
@@ -36,7 +37,7 @@ const HISTORY_ACTIONS: ToolbarAction[] = [
  * The phone formatting bar: docked to the bottom of the screen, above the on-screen keyboard when it's
  * open, with 44px touch targets. Buttons keep the editor focused so the keyboard doesn't close.
  */
-export function MobileToolbar({ editor }: { editor: Editor }) {
+export function MobileToolbar({ editor, docId }: { editor: Editor; docId: string }) {
   const role = useSuggestions((s) => s.role);
   const [, force] = useState(0);
   const [focused, setFocused] = useState(editor.isFocused);
@@ -58,6 +59,16 @@ export function MobileToolbar({ editor }: { editor: Editor }) {
 
   const hasSelection = !editor.state.selection.empty;
   const actions: ToolbarAction[] = [
+    ...(canSuggest(role)
+      ? [
+          {
+            id: "voice",
+            label: "Voice session",
+            icon: <Mic size={18} />,
+            run: () => navigate(voicePath(docId)),
+          },
+        ]
+      : []),
     ...(canSuggest(role)
       ? [pick("bold"), pick("italic"), pick("h2"), ...LIST_ACTIONS, pick("quote"), ...HISTORY_ACTIONS]
       : []),
