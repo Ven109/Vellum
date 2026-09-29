@@ -7,3 +7,4 @@ export * from "./proposal.js";
 export * from "./textmap.js";
 export * from "./suggestions.js";
 export * from "./focus.js";
+export * from "./repeated.js";

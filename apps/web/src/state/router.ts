@@ -21,19 +21,48 @@ export function parseRoute(pathname: string, search = ""): Route {
 
 const listeners = new Set<() => void>();
 
+let current = typeof window !== "undefined" ? window.location.pathname + window.location.search : "/";
+
+function onPopState() {
+  const next = window.location.pathname + window.location.search;
+  if (next !== current && !mayLeave()) {
+    // Undo the browser's back/forward step and stay on the page with unsaved changes.
+    window.history.pushState(null, "", current);
+    return;
+  }
+  leaveGuard = null;
+  current = next;
+  listeners.forEach((l) => l());
+}
+
+if (typeof window !== "undefined") window.addEventListener("popstate", onPopState);
+
 function subscribe(fn: () => void) {
   listeners.add(fn);
-  window.addEventListener("popstate", fn);
   return () => {
     listeners.delete(fn);
-    window.removeEventListener("popstate", fn);
   };
+}
+
+/** A page with unsaved changes can ask before the user navigates away. */
+let leaveGuard: (() => string | null) | null = null;
+
+export function setLeaveGuard(guard: (() => string | null) | null): void {
+  leaveGuard = guard;
+}
+
+function mayLeave(): boolean {
+  const message = leaveGuard?.();
+  return !message || window.confirm(message);
 }
 
 export function navigate(path: string, opts: { replace?: boolean } = {}): void {
   if (path === window.location.pathname + window.location.search) return;
+  if (!mayLeave()) return;
+  leaveGuard = null;
   if (opts.replace) window.history.replaceState(null, "", path);
   else window.history.pushState(null, "", path);
+  current = path;
   listeners.forEach((l) => l());
 }
 

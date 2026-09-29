@@ -3,6 +3,7 @@ import { flushAll, hasUnsavedWork } from "./data/ydocs.js";
 import { CommandPalette } from "./components/CommandPalette.js";
 import { CoreCommands } from "./components/CoreCommands.js";
 import { Sidebar } from "./components/Sidebar.js";
+import { AccountSettingsPage } from "./screens/AccountSettings.js";
 import { EditorScreen } from "./screens/EditorScreen.js";
 import { HistoryScreen } from "./screens/HistoryScreen.js";
 import { InsightsScreen } from "./screens/InsightsScreen.js";
@@ -101,6 +102,8 @@ function Screen() {
   if (route.name === "doc") return <EditorScreen key={route.id} docId={route.id} splitId={route.split} />;
   if (route.name === "history") return <HistoryScreen key={route.id} docId={route.id} />;
   if (route.name === "screen" && route.path === "/library") return <LibraryScreen />;
+  if (route.name === "screen" && (route.path === "/settings" || route.path === "/settings/account"))
+    return <AccountSettingsPage />;
   if (route.name === "screen" && route.path === "/settings/ai") return <ProviderSettings />;
   if (route.name === "screen" && route.path === "/settings/voice") return <VoiceSettingsPage />;
   if (route.name === "screen" && route.path === "/settings/workspace") return <WorkspaceSettingsPage />;

@@ -209,6 +209,7 @@ export function EditorScreen({ docId, splitId }: { docId: string; splitId?: stri
   const assistantOpen = useAssistant((s) => s.open);
   const reviewOpen = useReview((s) => s.open);
   const focus = useFocus((s) => s.active);
+  const inlineProposals = useApp((s) => s.workspace?.settings.behaviour.inlineSuggestions ?? true);
   const dimming = useFocus((s) => s.dimming);
   // Leaving the document leaves focus mode.
   useEffect(() => () => useFocus.getState().exit(), [docId]);
@@ -253,7 +254,12 @@ export function EditorScreen({ docId, splitId }: { docId: string; splitId?: stri
 
   return (
     <>
-      <main className="vl-main" data-focus={focus || undefined} data-dimming={focus ? dimming : undefined}>
+      <main
+        className="vl-main"
+        data-focus={focus || undefined}
+        data-dimming={focus ? dimming : undefined}
+        data-inline-proposals={inlineProposals ? undefined : "off"}
+      >
         {!focus && <TopBar doc={meta} />}
         <div className="vl-scroll">
           <DocumentPane docId={docId} primary meta={meta} />

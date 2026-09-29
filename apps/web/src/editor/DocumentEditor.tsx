@@ -1,7 +1,13 @@
 import Collaboration from "@tiptap/extension-collaboration";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { documentStats } from "@vellum/core";
-import { CurrentBlock, markdownToDoc, vellumExtensions } from "@vellum/editor";
+import {
+  CurrentBlock,
+  RepeatedPhrases,
+  markdownToDoc,
+  repeatedPhrasesKey,
+  vellumExtensions,
+} from "@vellum/editor";
 import { useEffect, useRef } from "react";
 import { yCursorPlugin } from "@tiptap/y-tiptap";
 import type { Awareness } from "y-protocols/awareness";
@@ -54,6 +60,7 @@ function presenceExtension(awareness: Awareness) {
 
 export function DocumentEditor({ docId, ydoc, awareness, live, initialMarkdown, primary = true }: Props) {
   const updateDocument = useApp((s) => s.updateDocument);
+  const flagRepeated = useApp((s) => s.workspace?.settings.behaviour.flagRepeatedPhrasing ?? false);
   const metaTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const editor = useEditor(
@@ -63,6 +70,7 @@ export function DocumentEditor({ docId, ydoc, awareness, live, initialMarkdown, 
         extra: [
           Collaboration.configure({ document: ydoc, field: "content" }),
           CurrentBlock,
+          RepeatedPhrases.configure({ enabled: flagRepeated }),
           ...(awareness && primary ? [presenceExtension(awareness)] : []),
         ],
       }),
@@ -121,6 +129,10 @@ export function DocumentEditor({ docId, ydoc, awareness, live, initialMarkdown, 
   useCommentsBinding(editor, ydoc, primary);
   useSuggestionsBinding(editor, primary);
   useSnapshots(editor, docId, live ?? null, primary);
+  useEffect(() => {
+    if (editor && !editor.isDestroyed)
+      editor.view.dispatch(editor.state.tr.setMeta(repeatedPhrasesKey, flagRepeated));
+  }, [editor, flagRepeated]);
   useSessionTracking(editor, docId, primary);
 
   return (
