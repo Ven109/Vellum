@@ -7,6 +7,7 @@ import { AssistantPanel } from "../components/AssistantPanel.js";
 import { ProposalCard } from "../components/ProposalCard.js";
 import { CommentComposer } from "../components/Comments.js";
 import { ErrorBoundary } from "../components/ErrorBoundary.js";
+import { ReviewPanel, useReview } from "../components/ReviewPanel.js";
 import { RightRail } from "../components/RightRail.js";
 import { useAssistant } from "../state/assistant.js";
 import { TopBar } from "../components/TopBar.js";
@@ -151,6 +152,7 @@ export function EditorScreen({ docId, splitId }: { docId: string; splitId?: stri
   const meta = useApp((s) => s.documents.find((d) => d.id === docId));
   const splitMeta = useApp((s) => (splitId ? s.documents.find((d) => d.id === splitId) : undefined));
   const assistantOpen = useAssistant((s) => s.open);
+  const reviewOpen = useReview((s) => s.open);
 
   if (!meta) {
     return (
@@ -198,7 +200,7 @@ export function EditorScreen({ docId, splitId }: { docId: string; splitId?: stri
         </div>
       </main>
       <ErrorBoundary label="the side panel">
-        {assistantOpen ? <AssistantPanel /> : <RightRail />}
+        {assistantOpen ? <AssistantPanel /> : reviewOpen ? <ReviewPanel /> : <RightRail />}
       </ErrorBoundary>
       <ProposalCard />
       <CommentComposer />

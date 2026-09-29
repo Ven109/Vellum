@@ -1942,3 +1942,42 @@ del.vl-sug-del,
 .vl-segmented button:disabled {
   cursor: not-allowed;
 }
+
+/* Review */
+.vl-review {
+  display: flex;
+  flex-direction: column;
+  width: 360px;
+  padding: 0;
+}
+
+.vl-review-approve {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.vl-review-approve .vl-ok {
+  display: flex;
+  gap: 6px;
+  margin: 0;
+}
+
+.vl-review-tabs {
+  padding: 0 12px;
+}
+
+.vl-review-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 16px;
+}
+
+.vl-count-pill {
+  margin-left: 2px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 11px;
+}
