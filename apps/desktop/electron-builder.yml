@@ -1,0 +1,52 @@
+appId: app.vellum.desktop
+productName: Vellum
+copyright: Copyright © Vellum contributors
+directories:
+  output: release
+  buildResources: build
+files:
+  - dist/**/*
+  - "!dist/**/*.map"
+  - package.json
+extraResources:
+  - from: ../web/dist
+    to: web
+    filter: ["**/*", "!**/*.map"]
+asar: true
+artifactName: "Vellum-${version}-${os}-${arch}.${ext}"
+electronLanguages: [en-US, en-GB, de, fr, es, it, pt-BR, nl, sv, ja, zh-CN]
+mac:
+  category: public.app-category.productivity
+  target: [dmg, zip]
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+win:
+  target: [nsis]
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+linux:
+  executableName: vellum
+  syncDesktopName: true
+  category: Office
+  synopsis: Long-form writing, offline, with your own AI key
+  maintainer: Vellum contributors <noreply@vellum.app>
+  target: [AppImage, deb, flatpak]
+deb:
+  packageName: vellum
+  depends:
+    [libgtk-3-0, libnotify4, libnss3, libxss1, libxtst6, xdg-utils, libatspi2.0-0, libuuid1, libsecret-1-0]
+flatpak:
+  runtime: org.freedesktop.Platform
+  runtimeVersion: "24.08"
+  sdk: org.freedesktop.Sdk
+  base: org.electronjs.Electron2.BaseApp
+  baseVersion: "24.08"
+publish:
+  provider: github
+  owner: Ven109
+  repo: Vellum
+  releaseType: release

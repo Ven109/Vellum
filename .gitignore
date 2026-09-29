@@ -13,3 +13,4 @@ test-results/
 /data/
 apps/web/test-results
 apps/web/e2e/.auth/
+apps/desktop/release/
