@@ -47,3 +47,33 @@ Audio goes to streaming speech providers over one persistent WebSocket per sessi
 - A dropped connection is reopened with backoff (250 ms, doubling up to 5 s).
 - Idle connections are kept alive with pings.
 - The session closes cleanly when you end it.
+
+## Speech providers
+
+Voice mode uses your own keys, the same way the writing assistant does. Choose providers in
+**Settings → Voice mode**. Keys go into the same key vault as your AI provider keys (the OS keychain in
+the desktop app) and are sent only to the provider they belong to.
+
+**Speech recognition**
+
+| Provider            | How                                                                                                                      | Key      |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------ | -------- |
+| OpenAI (Whisper)    | Each turn is sent as a WAV file when you stop speaking (`gpt-4o-mini-transcribe` by default)                             | Required |
+| Deepgram            | Streams while you speak over one WebSocket; words appear as you say them. Only speech is sent, never the silence between | Required |
+| whisper.cpp (local) | Each turn goes to `whisper-server` on your machine (default `http://127.0.0.1:8080`). Audio never leaves it              | None     |
+
+Each turn includes 300 ms of audio from before speech was detected, so first syllables aren't clipped.
+
+**Voice** (how the agent talks back)
+
+| Provider     | Voices                                                            | Key      |
+| ------------ | ----------------------------------------------------------------- | -------- |
+| System voice | Your device's built-in voices (Web Speech API); the default       | None     |
+| OpenAI       | Alloy, Ash, Ballad, Coral, Echo, Fable, Nova, Onyx, Sage, Shimmer | Required |
+| ElevenLabs   | Your voice library, including cloned voices                       | Required |
+
+**Preview** plays a short sample in the chosen voice.
+
+Every provider is an adapter behind one interface in `packages/voice/src/speech`: `createRecognizer()`
+for speech-to-text and `createSynthesizer()` for text-to-speech. Adding a provider is a new adapter plus
+a preset; nothing else in the app changes.

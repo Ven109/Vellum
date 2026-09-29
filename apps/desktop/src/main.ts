@@ -65,6 +65,8 @@ const CSP = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
+  // Spoken replies are played from blob: URLs; some voice previews come straight from the provider.
+  "media-src 'self' blob: data: https:",
   "connect-src 'self' https: wss: http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:*",
   "object-src 'none'",
   "base-uri 'none'",
