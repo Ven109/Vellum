@@ -1,4 +1,4 @@
-import type { Collection, DocumentMeta, User, Version, Workspace } from "@vellum/core";
+import type { Collection, DocumentMeta, User, Version, Workspace, WritingSession } from "@vellum/core";
 
 /**
  * Persistence boundary for workspace metadata. The document bodies themselves live in Yjs docs (see
@@ -25,6 +25,11 @@ export interface Repository {
   putVersion(version: Version): Promise<void>;
   listVersions(documentId: string): Promise<Version[]>;
   deleteVersion(id: string): Promise<void>;
+
+  /** Writing sessions stay on this device: they are never synced or uploaded. */
+  putSession(session: WritingSession): Promise<void>;
+  /** Sessions that ended between `from` and `to` (ISO timestamps, inclusive). */
+  listSessions(from: string, to: string): Promise<WritingSession[]>;
 
   getSetting<T>(key: string): Promise<T | undefined>;
   putSetting<T>(key: string, value: T): Promise<void>;

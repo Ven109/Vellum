@@ -4,6 +4,7 @@ import type { DragEvent, ReactNode } from "react";
 import { useState } from "react";
 import { useApp } from "../state/app.js";
 import { CollectionMenu } from "./CollectionMenu.js";
+import { GoalMeter } from "./GoalMeter.js";
 import { Inbox } from "./Inbox.js";
 import { MOD_KEY, useCommands } from "../state/commands.js";
 import { docPath, navigate, usePathname, useRoute } from "../state/router.js";
@@ -122,6 +123,7 @@ export function Sidebar() {
         <CollectionsList activeId={activeId} />
       </div>
       <SharedWithMe activeId={activeId} />
+      <GoalMeter />
     </nav>
   );
 }
