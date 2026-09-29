@@ -57,14 +57,15 @@ jobs:
     needs: check
     steps:
       - uses: actions/checkout@v4
+      # Compose requires the storage credentials; CI makes throwaway ones.
+      - name: Create .env
+        run: printf 'STORAGE_ACCESS_KEY=ci%s\nSTORAGE_SECRET_KEY=%s\n' "$(openssl rand -hex 6)" "$(openssl rand -hex 20)" > .env
       - name: Validate the Compose file
-        run: STORAGE_ACCESS_KEY=x STORAGE_SECRET_KEY=y docker compose config --quiet
+        run: docker compose config --quiet
       - name: Build the image
         run: docker compose build vellum
       - name: Start the stack
-        run: |
-          printf 'STORAGE_ACCESS_KEY=ci%s\nSTORAGE_SECRET_KEY=%s\n' "$(openssl rand -hex 6)" "$(openssl rand -hex 20)" > .env
-          docker compose up -d --no-build
+        run: docker compose up -d --no-build
       - name: Smoke test
         run: ./scripts/smoke-selfhost.sh
       - name: Logs
