@@ -7,6 +7,7 @@ import { useApp } from "../state/app.js";
 import { docPath, navigate } from "../state/router.js";
 import { useVoiceSession } from "../voice/session.js";
 import { handsFreeEnabled } from "../data/speech.js";
+import { useIsMobile } from "../state/mobile.js";
 import { DocumentPane } from "./EditorScreen.js";
 
 const STATUS_TEXT = {
@@ -105,7 +106,7 @@ function Transcript() {
     if (focused) document.getElementById(`turn-${focused}`)?.scrollIntoView({ block: "nearest" });
   }, [focused]);
   return (
-    <section className="vl-voice-transcript" aria-label="Conversation">
+    <section className="vl-voice-transcript" id="voice-pane-transcript" aria-label="Conversation">
       {constraints.length > 0 && (
         <ul className="vl-chips" aria-label="Constraints">
           {constraints.map((c) => (
@@ -217,17 +218,25 @@ function VoiceStackPanel() {
   );
 }
 
-function InstructionCard() {
+/** On phones the card is reduced to the instruction and its two main choices, above the mic dock. */
+function InstructionCard({ compact }: { compact: boolean }) {
   const pending = useVoiceSession((s) => s.pending);
   const { applyNow, queueIt, ignore } = useVoiceSession.getState();
   if (!pending) return null;
   return (
-    <div className="vl-instruction-card" role="alertdialog" aria-label="Heard an instruction">
-      <p className="vl-muted">Heard an instruction while writing</p>
+    <div
+      className="vl-instruction-card"
+      data-compact={compact || undefined}
+      role="alertdialog"
+      aria-label="Heard an instruction"
+    >
+      {!compact && <p className="vl-muted">Heard an instruction while writing</p>}
       <p className="vl-instruction-text">“{pending.text}”</p>
-      <p className="vl-muted" data-testid="instruction-default">
-        Applying it after this sentence, unless you choose otherwise.
-      </p>
+      {!compact && (
+        <p className="vl-muted" data-testid="instruction-default">
+          Applying it after this sentence, unless you choose otherwise.
+        </p>
+      )}
       <div className="vl-actions">
         <button className="vl-btn vl-btn-primary" onClick={applyNow}>
           Apply now
@@ -235,10 +244,44 @@ function InstructionCard() {
         <button className="vl-btn" onClick={queueIt}>
           Queue it
         </button>
-        <button className="vl-btn" onClick={ignore}>
-          Ignore
-        </button>
+        {!compact && (
+          <button className="vl-btn" onClick={ignore}>
+            Ignore
+          </button>
+        )}
       </div>
+    </div>
+  );
+}
+
+/** Phones: the session's controls in a fixed dock at the bottom, within thumb reach. */
+function MicDock({ docId }: { docId: string }) {
+  const s = useVoiceSession();
+  const running = s.status !== "idle" && s.status !== "error";
+  return (
+    <div className="vl-mic-dock" role="toolbar" aria-label="Microphone">
+      {running ? (
+        <>
+          <button
+            className="vl-dock-btn"
+            aria-pressed={s.muted}
+            aria-label={s.muted ? "Unmute" : "Mute"}
+            onClick={() => s.setMuted(!s.muted)}
+          >
+            {s.muted ? <MicOff size={22} /> : <Mic size={22} />}
+          </button>
+          <span className="vl-dock-orb">
+            <Orb />
+          </span>
+          <button className="vl-dock-btn vl-dock-end" aria-label="End session" onClick={() => void s.end()}>
+            <PhoneOff size={22} />
+          </button>
+        </>
+      ) : (
+        <button className="vl-btn vl-btn-primary vl-dock-start" onClick={() => void s.start(docId)}>
+          <Mic size={18} /> Start talking
+        </button>
+      )}
     </div>
   );
 }
@@ -270,6 +313,9 @@ function Announcer() {
 export function VoiceScreen({ docId }: { docId: string }) {
   const meta = useApp((s) => s.documents.find((d) => d.id === docId));
   const s = useVoiceSession();
+  const mobile = useIsMobile();
+  // Phones show one pane at a time; the draft first, since watching it write is the point.
+  const [pane, setPane] = useState<"draft" | "transcript">("draft");
   const running = s.status !== "idle" && s.status !== "error";
   const micOn = running && s.status !== "starting" && !s.muted;
 
@@ -317,7 +363,12 @@ export function VoiceScreen({ docId }: { docId: string }) {
   }
 
   return (
-    <main className="vl-main vl-voice" data-live={running || undefined}>
+    <main
+      className="vl-main vl-voice"
+      data-live={running || undefined}
+      data-mobile={mobile || undefined}
+      data-pane={mobile ? pane : undefined}
+    >
       <header className="vl-voice-bar">
         <a
           className="vl-btn"
@@ -348,12 +399,13 @@ export function VoiceScreen({ docId }: { docId: string }) {
           <button
             className="vl-btn"
             aria-pressed={s.handsFree}
+            aria-label="Hands-free"
             title="Hands-free: keeps going with the screen off, and reads new writing aloud"
             onClick={() => s.setHandsFree(!s.handsFree)}
           >
-            <Headphones size={14} /> Hands-free
+            <Headphones size={14} /> <span className="vl-btn-label">Hands-free</span>
           </button>
-          {running ? (
+          {mobile ? null : running ? (
             <>
               <button className="vl-btn" aria-pressed={s.muted} onClick={() => s.setMuted(!s.muted)}>
                 {s.muted ? <MicOff size={14} /> : <Mic size={14} />} {s.muted ? "Unmute" : "Mute"}
@@ -401,10 +453,25 @@ export function VoiceScreen({ docId }: { docId: string }) {
           can.
         </p>
       )}
+      {mobile && (
+        <div className="vl-voice-switch" role="tablist" aria-label="Show">
+          {(["draft", "transcript"] as const).map((p) => (
+            <button
+              key={p}
+              role="tab"
+              aria-selected={pane === p}
+              aria-controls={`voice-pane-${p}`}
+              onClick={() => setPane(p)}
+            >
+              {p === "draft" ? "Draft" : `Transcript${s.turns.length ? ` · ${s.turns.length}` : ""}`}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="vl-voice-body">
         <VoiceStackPanel />
         <Transcript />
-        <section className="vl-voice-doc" aria-label="Document">
+        <section className="vl-voice-doc" id="voice-pane-draft" aria-label="Document">
           <div className="vl-voice-doc-bar">
             {s.agentWriting && (
               <span className="vl-agent-badge" data-testid="agent-writing">
@@ -446,7 +513,8 @@ export function VoiceScreen({ docId }: { docId: string }) {
           </div>
         </section>
       </div>
-      <InstructionCard />
+      {mobile && <MicDock docId={docId} />}
+      <InstructionCard compact={mobile} />
       <Announcer />
     </main>
   );

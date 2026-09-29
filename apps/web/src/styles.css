@@ -4247,3 +4247,156 @@ del.vl-sug-del,
   align-self: flex-start;
   font-size: 12px;
 }
+
+/* Voice session on phones: one pane at a time behind a switch, and a fixed mic dock. */
+.vl-voice-switch,
+.vl-mic-dock {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .vl-voice-bar {
+    gap: 8px;
+    padding: 0 12px;
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .vl-voice-bar .vl-btn,
+  .vl-voice-doc-bar .vl-btn {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .vl-voice-bar .vl-btn-label,
+  .vl-voice-status,
+  .vl-agent-speaking {
+    display: none;
+  }
+
+  .vl-voice-title {
+    flex: 1;
+    min-width: 0;
+    font-size: 16px;
+  }
+
+  .vl-voice-switch {
+    display: flex;
+    flex: none;
+    margin: 8px 12px;
+    padding: 3px;
+    border-radius: 10px;
+    background: var(--panel-2);
+  }
+
+  .vl-voice-switch button {
+    flex: 1;
+    min-height: 44px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--ink-2);
+    font: inherit;
+    font-weight: 600;
+  }
+
+  .vl-voice-switch button[aria-selected="true"] {
+    background: var(--paper);
+    color: var(--ink);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.12);
+  }
+
+  .vl-voice-body {
+    display: block;
+    /* Room for the dock. */
+    padding-bottom: calc(88px + env(safe-area-inset-bottom));
+    overflow: hidden;
+  }
+
+  .vl-voice-stack {
+    display: none;
+  }
+
+  .vl-voice-transcript,
+  .vl-voice-doc {
+    height: 100%;
+    border-right: 0;
+  }
+
+  .vl-voice[data-pane="draft"] .vl-voice-transcript,
+  .vl-voice[data-pane="transcript"] .vl-voice-doc {
+    display: none;
+  }
+
+  .vl-mic-dock {
+    display: flex;
+    position: fixed;
+    z-index: 50;
+    inset: auto 0 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 24px calc(12px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--line);
+    background: var(--paper);
+  }
+
+  .vl-dock-btn {
+    display: inline-grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    background: var(--panel);
+    color: var(--ink);
+  }
+
+  .vl-dock-btn[aria-pressed="true"] {
+    background: var(--panel-2);
+    color: var(--muted);
+  }
+
+  .vl-dock-end {
+    border-color: var(--danger);
+    background: var(--danger);
+    color: #fff;
+  }
+
+  .vl-dock-orb {
+    display: inline-grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+  }
+
+  .vl-dock-orb .vl-orb {
+    width: 36px;
+    height: 36px;
+  }
+
+  .vl-dock-start {
+    flex: 1;
+    min-height: 52px;
+    justify-content: center;
+    font-size: 16px;
+  }
+
+  .vl-instruction-card {
+    right: 12px;
+    bottom: calc(96px + env(safe-area-inset-bottom));
+    left: 12px;
+    width: auto;
+  }
+
+  .vl-instruction-card .vl-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .vl-instruction-card .vl-btn {
+    flex: 1;
+    min-height: 44px;
+    justify-content: center;
+  }
+}

@@ -300,7 +300,7 @@ export function EditorScreen({ docId, splitId }: { docId: string; splitId?: stri
           <DocumentPane docId={docId} primary meta={meta} />
         </div>
         {focus && <FocusHud />}
-        {mobile && editor && !focus && <MobileToolbar editor={editor} />}
+        {mobile && editor && !focus && <MobileToolbar editor={editor} docId={docId} />}
       </main>
       <ErrorBoundary label="the side panel">
         {assistantOpen ? <AssistantPanel /> : focus ? null : reviewOpen ? <ReviewPanel /> : <RightRail />}
