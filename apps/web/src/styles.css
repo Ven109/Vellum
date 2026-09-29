@@ -2694,3 +2694,67 @@ del.vl-sug-del,
     padding: 16px;
   }
 }
+
+/* Daily goal */
+.vl-goal {
+  margin-top: auto;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+  font-size: 12px;
+}
+
+.vl-goal-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  color: var(--ink-2);
+}
+
+.vl-goal-row span {
+  flex: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.vl-goal-bar {
+  height: 5px;
+  margin: 8px 0 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--line);
+}
+
+.vl-goal-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 300ms ease;
+}
+
+.vl-goal-bar[data-done] > span {
+  background: var(--ok);
+}
+
+.vl-goal-streak {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin: 0;
+  color: var(--muted);
+}
+
+.vl-goal-form {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.vl-goal-form label {
+  display: grid;
+  gap: 4px;
+}
+
+.vl-goal-form p {
+  margin: 0;
+}

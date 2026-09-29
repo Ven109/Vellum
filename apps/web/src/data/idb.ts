@@ -1,6 +1,6 @@
 import { openDB } from "idb";
 import type { DBSchema, IDBPDatabase } from "idb";
-import type { Collection, DocumentMeta, User, Version, Workspace } from "@vellum/core";
+import type { Collection, DocumentMeta, User, Version, Workspace, WritingSession } from "@vellum/core";
 import type { Repository } from "./repository.js";
 
 interface VellumDB extends DBSchema {
@@ -10,13 +10,14 @@ interface VellumDB extends DBSchema {
   documents: { key: string; value: DocumentMeta; indexes: { byWorkspace: string } };
   settings: { key: string; value: unknown };
   versions: { key: string; value: Version; indexes: { byDocument: string } };
+  sessions: { key: string; value: WritingSession; indexes: { byEnd: string } };
 }
 
 export class IndexedDbRepository implements Repository {
   private db: Promise<IDBPDatabase<VellumDB>>;
 
   constructor(name = "vellum") {
-    this.db = openDB<VellumDB>(name, 2, {
+    this.db = openDB<VellumDB>(name, 3, {
       upgrade(db, oldVersion) {
         if (oldVersion < 1) {
           db.createObjectStore("users", { keyPath: "id" });
@@ -27,6 +28,9 @@ export class IndexedDbRepository implements Repository {
         }
         if (oldVersion < 2) {
           db.createObjectStore("versions", { keyPath: "id" }).createIndex("byDocument", "documentId");
+        }
+        if (oldVersion < 3) {
+          db.createObjectStore("sessions", { keyPath: "id" }).createIndex("byEnd", "endedAt");
         }
       },
     });
@@ -85,6 +89,13 @@ export class IndexedDbRepository implements Repository {
   }
   async deleteVersion(id: string) {
     await (await this.db).delete("versions", id);
+  }
+
+  async putSession(session: WritingSession) {
+    await (await this.db).put("sessions", session);
+  }
+  async listSessions(from: string, to: string) {
+    return (await this.db).getAllFromIndex("sessions", "byEnd", IDBKeyRange.bound(from, to));
   }
 
   async getSetting<T>(key: string) {

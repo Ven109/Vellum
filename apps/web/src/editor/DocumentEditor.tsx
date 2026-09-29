@@ -15,6 +15,7 @@ import type { HeadingEntry } from "../state/session.js";
 import { SelectionToolbar } from "./SelectionToolbar.js";
 import { useSnapshots } from "./useSnapshots.js";
 import { imageHandlers } from "./imagePaste.js";
+import { useSessionTracking } from "./useSessionTracking.js";
 import type { LiveDoc } from "../data/ydocs.js";
 import { Extension } from "@tiptap/core";
 import type { Editor } from "@tiptap/core";
@@ -120,6 +121,7 @@ export function DocumentEditor({ docId, ydoc, awareness, live, initialMarkdown, 
   useCommentsBinding(editor, ydoc, primary);
   useSuggestionsBinding(editor, primary);
   useSnapshots(editor, docId, live ?? null, primary);
+  useSessionTracking(editor, docId, primary);
 
   return (
     <>
