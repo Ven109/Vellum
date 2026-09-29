@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
-import { addAnthropicKey, mockAnthropic, newDraft } from "./fixtures.js";
+import { addAnthropicKey, explainFailures, mockAnthropic, newDraft } from "./fixtures.js";
 import { fakeMicLaunch, writeSpeechWav } from "./voice-audio.js";
 
 // Two turns: the first ends ~2.6 s in, the second starts at ~4.1 s and ends ~5.2 s in.
@@ -16,6 +16,7 @@ const wav = writeSpeechWav(
 );
 
 test.use({ launchOptions: fakeMicLaunch(wav), permissions: ["microphone"] });
+explainFailures();
 
 async function setUp(page: Page, opts: { draftDelayMs: number; reviseSeen?: string[] }) {
   await mockAnthropic(page, async (body) => {

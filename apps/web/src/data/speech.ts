@@ -24,6 +24,13 @@ export interface VoicePrivacy {
   endOnBlur: boolean;
   /** ElevenLabs zero-retention mode (enterprise plans). */
   elevenLabsZeroRetention: boolean;
+  /**
+   * Hands-free sessions keep going with the screen off or the app in the background (for talking while
+   * walking). "auto" turns it on for phones and tablets.
+   */
+  handsFree: "auto" | "on" | "off";
+  /** In hands-free sessions, read new writing aloud while the screen is off. */
+  readBackWhenScreenOff: boolean;
 }
 
 export interface SpeechSettings {
@@ -38,6 +45,8 @@ export const DEFAULT_PRIVACY: VoicePrivacy = {
   localOnly: false,
   endOnBlur: true,
   elevenLabsZeroRetention: false,
+  handsFree: "auto",
+  readBackWhenScreenOff: true,
 };
 const DEFAULTS: SpeechSettings = { stt: null, tts: { kind: "system" }, privacy: DEFAULT_PRIVACY };
 
@@ -116,4 +125,13 @@ export async function openSynthesizer(): Promise<Synthesizer | null> {
 export function localOnlyPolicy(): { on: boolean; enforced: boolean } {
   const enforced = useAuth.getState().instance?.voice?.localOnly ?? false;
   return { on: enforced || useSpeech.getState().settings.privacy.localOnly, enforced };
+}
+
+/** Whether sessions on this device are hands-free. */
+export function handsFreeEnabled(): boolean {
+  const mode = useSpeech.getState().settings.privacy.handsFree;
+  if (mode !== "auto") return mode === "on";
+  return typeof window !== "undefined" && typeof window.matchMedia === "function"
+    ? window.matchMedia("(pointer: coarse)").matches
+    : false;
 }

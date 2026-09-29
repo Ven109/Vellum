@@ -159,6 +159,17 @@ export function explainFailures() {
   });
   test.afterEach(async ({ page }, info) => {
     if (info.status === info.expectedStatus) return;
+    const env = await page
+      .evaluate(() =>
+        JSON.stringify({
+          coarse: matchMedia("(pointer: coarse)").matches,
+          fine: matchMedia("(pointer: fine)").matches,
+          visibility: document.visibilityState,
+          speech: localStorage.getItem("vellum:voice:speech"),
+          speechSynthesis: typeof speechSynthesis,
+        }),
+      )
+      .catch(() => "(unavailable)");
     const text = await page
       .locator("body")
       .innerText({ timeout: 2000 })
@@ -167,6 +178,7 @@ export function explainFailures() {
       [
         `--- ${info.title} (${page.url()})`,
         ...(errors.get(page) ?? []),
+        `--- browser: ${env}`,
         "--- page text:",
         text.slice(0, 2000),
       ].join("\n"),

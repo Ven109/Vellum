@@ -517,6 +517,36 @@ function PrivacyCard() {
           </span>
         </label>
       )}
+      <label className="vl-field">
+        <span>Hands-free sessions</span>
+        <select
+          className="vl-input"
+          aria-label="Hands-free sessions"
+          value={privacy.handsFree}
+          onChange={(e) => set({ handsFree: e.target.value as typeof privacy.handsFree })}
+        >
+          <option value="auto">On phones and tablets</option>
+          <option value="on">Always</option>
+          <option value="off">Never</option>
+        </select>
+        <small className="vl-muted">
+          Hands-free sessions keep going with the screen off, so you can talk while walking. The microphone
+          stays on until you end the session (from the lock screen too).
+        </small>
+      </label>
+      <label className="vl-switch">
+        <input
+          type="checkbox"
+          checked={privacy.readBackWhenScreenOff}
+          onChange={(e) => set({ readBackWhenScreenOff: e.target.checked })}
+        />
+        <span>
+          Read new writing aloud when the screen is off
+          <small className="vl-muted">
+            You can't see the draft, so you hear it. Talk over it to interrupt.
+          </small>
+        </span>
+      </label>
       <label className="vl-switch">
         <input
           type="checkbox"

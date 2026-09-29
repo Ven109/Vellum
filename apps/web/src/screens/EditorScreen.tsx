@@ -86,9 +86,25 @@ function TitleField({ live, docId, meta }: { live: LiveDoc; docId: string; meta?
   const ref = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    // Seed the title from metadata for documents created before titles lived in the CRDT. Shared
-    // documents get theirs from the server.
-    if (!ytitle.length && meta?.title && !shared) ytitle.insert(0, meta.title);
+    // Seed the title from metadata for documents created before titles lived in the CRDT. Only once the
+    // saved copy has loaded (and, when syncing, the server's has arrived): seeding earlier doubles a
+    // title that was already there. Shared documents get theirs from the server.
+    let cancelled = false;
+    let stopWaiting = () => {};
+    const seed = () => {
+      if (!cancelled && !ytitle.length && meta?.title && !shared) ytitle.insert(0, meta.title);
+    };
+    void live.whenLoaded.then(() => {
+      if (cancelled) return;
+      if (!live.remote) return seed();
+      const whenSynced = () => {
+        if (!live.remote?.isSynced) return;
+        stopWaiting();
+        seed();
+      };
+      stopWaiting = live.onStatus(whenSynced);
+      whenSynced();
+    });
     const observer = () => {
       const next = ytitle.toString();
       setValue(next);
@@ -97,7 +113,11 @@ function TitleField({ live, docId, meta }: { live: LiveDoc; docId: string; meta?
     ytitle.observe(observer);
     // Catch up with anything that arrived (local load or server sync) between render and subscribe.
     setValue(ytitle.toString() || meta?.title || "");
-    return () => ytitle.unobserve(observer);
+    return () => {
+      cancelled = true;
+      stopWaiting();
+      ytitle.unobserve(observer);
+    };
     // Seed only once per open document.
   }, [ytitle, docId]); // eslint-disable-line react-hooks/exhaustive-deps
 

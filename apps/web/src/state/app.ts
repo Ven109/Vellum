@@ -106,10 +106,16 @@ export const useApp = create<AppState>((set, get) => {
         repo.listCollections(workspace.id),
         repo.listDocuments(workspace.id),
       ]);
-      // A draft created while this was reading may not be in what it read: keep it rather than drop it.
+      // Writes are queued, so what this read can be older than what's on screen: keep a draft created
+      // meanwhile, and any document changed more recently here (a title typed while it was reading).
+      const current = new Map(get().documents.map((d) => [d.id, d]));
       const listed = new Set(documents.map((d) => d.id));
       const pending = get().documents.filter((d) => createdHere.has(d.id) && !listed.has(d.id));
-      set({ workspaces, collections, documents: [...pending, ...documents] });
+      const merged = documents.map((d) => {
+        const mine = current.get(d.id);
+        return mine && mine.updatedAt > d.updatedAt ? mine : d;
+      });
+      set({ workspaces, collections, documents: [...pending, ...merged] });
     },
 
     async createDocument(input = {}) {

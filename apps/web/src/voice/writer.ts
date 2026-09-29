@@ -45,10 +45,14 @@ export class DocWriter {
   private gate: BoundaryGate | null = null;
   private stream: AgentStream | null = null;
   private stopAtWord = false;
+  /** Text written by the current compose (for reading it back). */
+  private written = "";
   private decided: (() => void) | null = null;
   writing = false;
   /** Called when a "finish the sentence, then stop" completes. */
   onSentenceDone?: () => void;
+  /** Called with the text of each piece of writing once it's in (for reading it back). */
+  onWritten?: (text: string) => void;
 
   constructor(private readonly o: WriterOptions) {}
 
@@ -73,10 +77,15 @@ export class DocWriter {
     this.gate?.set("word");
   }
 
+  private put(text: string) {
+    this.stream?.write(text);
+    this.written += text;
+  }
+
   /** Carry on writing what was held. */
   release() {
     const text = this.gate?.release();
-    if (text) this.stream?.write(text);
+    if (text) this.put(text);
     this.wake();
   }
 
@@ -87,7 +96,7 @@ export class DocWriter {
     gate.set("sentence");
     // Anything already held may complete the sentence straight away.
     const r = gate.feed("");
-    if (r.write) this.stream?.write(r.write);
+    if (r.write) this.put(r.write);
     if (r.stop) this.controller?.abort();
     this.wake();
   }
@@ -166,6 +175,7 @@ export class DocWriter {
     s.begin(where, turnId);
     s.write(text);
     s.end();
+    if (text.trim()) this.onWritten?.(text.trim());
   }
 
   private async compose(
@@ -187,6 +197,8 @@ export class DocWriter {
     stream.onYield = () => this.controller?.abort();
     stream.begin("end", action.turnId);
     let first = true;
+    this.written = "";
+    const put = (text: string) => this.put(text);
     const settle = () => {
       this.stream = null;
       this.gate = null;
@@ -202,7 +214,7 @@ export class DocWriter {
         if (first) chunk = chunk.replace(/^\s*["“]/, "");
         first = false;
         const r = gate.feed(chunk);
-        if (r.write) stream.write(r.write);
+        if (r.write) put(r.write);
         if (r.stop || (this.stopAtWord && gate.holding)) {
           this.controller?.abort();
           break;
@@ -213,7 +225,7 @@ export class DocWriter {
         await new Promise<void>((resolve) => (this.decided = resolve));
         if (gate.state === "sentence" && !gate.done) {
           const r = gate.feed("");
-          if (r.write) stream.write(r.write);
+          if (r.write) put(r.write);
         }
       }
     } catch (e) {
@@ -233,6 +245,7 @@ export class DocWriter {
     }
     stream.end(signal.aborted ? "stopped" : "done");
     settle();
+    if (this.written.trim()) this.onWritten?.(this.written.replace(/\n\s*\n/g, " ").trim());
     return stream.hasWritten || signal.aborted ? "" : "I didn't have anything to add there.";
   }
 
