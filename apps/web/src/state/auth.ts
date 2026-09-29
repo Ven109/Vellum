@@ -21,8 +21,10 @@ interface AuthState {
 
 function installResolver() {
   setSyncWorkspaceResolver((docId) => {
-    const { documents, workspace, account: me } = useApp.getState();
+    const { documents, workspace, account: me, shared } = useApp.getState();
     if (!me) return null;
+    const sharedDoc = shared.find((d) => d.docId === docId);
+    if (sharedDoc) return sharedDoc.workspaceId;
     const onServer = new Set(me.workspaces.map((w) => w.id));
     const ws = documents.find((d) => d.id === docId)?.workspaceId ?? workspace?.id;
     return ws && onServer.has(ws) ? ws : null;
@@ -49,6 +51,7 @@ export const useAuth = create<AuthState>((set, get) => ({
       instance: get().instance ? { ...get().instance!, setupRequired: false } : null,
     });
     await useApp.getState().init(undefined, me);
+    void useApp.getState().loadShared();
   },
 
   async reload() {

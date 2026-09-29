@@ -3,6 +3,8 @@ import { EditorContent, useEditor } from "@tiptap/react";
 import { documentStats } from "@vellum/core";
 import { CurrentBlock, markdownToDoc, vellumExtensions } from "@vellum/editor";
 import { useEffect, useRef } from "react";
+import { yCursorPlugin } from "@tiptap/y-tiptap";
+import type { Awareness } from "y-protocols/awareness";
 import type * as Y from "yjs";
 import { indexDocument } from "../data/search.js";
 import { useApp } from "../state/app.js";
@@ -11,11 +13,14 @@ import { useSuggestionsBinding } from "../state/suggestions.js";
 import { useDocSession } from "../state/session.js";
 import type { HeadingEntry } from "../state/session.js";
 import { SelectionToolbar } from "./SelectionToolbar.js";
+import { Extension } from "@tiptap/core";
 import type { Editor } from "@tiptap/core";
 
 interface Props {
   docId: string;
   ydoc: Y.Doc;
+  /** Presence: shows other people's cursors and selections. */
+  awareness?: Awareness;
   /** Markdown to seed an empty document with (used for the welcome draft). */
   initialMarkdown?: string;
   /** The primary editor drives the top bar and right rail; a split pane does not. */
@@ -31,7 +36,17 @@ function collectHeadings(editor: Editor): HeadingEntry[] {
   return out;
 }
 
-export function DocumentEditor({ docId, ydoc, initialMarkdown, primary = true }: Props) {
+/** Other people's cursors and selections, labelled with their names. */
+function presenceExtension(awareness: Awareness) {
+  return Extension.create({
+    name: "presence",
+    addProseMirrorPlugins() {
+      return [yCursorPlugin(awareness)];
+    },
+  });
+}
+
+export function DocumentEditor({ docId, ydoc, awareness, initialMarkdown, primary = true }: Props) {
   const updateDocument = useApp((s) => s.updateDocument);
   const metaTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
@@ -39,13 +54,18 @@ export function DocumentEditor({ docId, ydoc, initialMarkdown, primary = true }:
     {
       extensions: vellumExtensions({
         collaborative: true,
-        extra: [Collaboration.configure({ document: ydoc, field: "content" }), CurrentBlock],
+        extra: [
+          Collaboration.configure({ document: ydoc, field: "content" }),
+          CurrentBlock,
+          ...(awareness && primary ? [presenceExtension(awareness)] : []),
+        ],
       }),
       editorProps: {
-        attributes: { class: "vl-prose", "aria-label": "Document body", spellcheck: "true" },
+        // tabindex keeps read-only documents focusable, so readers can select text to comment or ask.
+        attributes: { class: "vl-prose", "aria-label": "Document body", spellcheck: "true", tabindex: "0" },
       },
     },
-    [ydoc],
+    [ydoc, awareness],
   );
 
   useEffect(() => {
@@ -64,6 +84,7 @@ export function DocumentEditor({ docId, ydoc, initialMarkdown, primary = true }:
     };
     if (primary) {
       session.open(docId, editor, 0);
+      session.update({ awareness: awareness ?? null });
       useDocSession.setState({ openedWordCount: measure().words });
     }
     // Stats are recomputed at most every 200ms while typing so long documents stay responsive.
@@ -88,7 +109,7 @@ export function DocumentEditor({ docId, ydoc, initialMarkdown, primary = true }:
       clearTimeout(metaTimer.current);
       if (primary) session.close(docId);
     };
-  }, [editor, docId, initialMarkdown, updateDocument, primary]);
+  }, [editor, docId, initialMarkdown, updateDocument, primary, awareness]);
 
   useCommentsBinding(editor, ydoc, primary);
   useSuggestionsBinding(editor, primary);

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useComments } from "../state/comments.js";
 import { useAssistant } from "../state/assistant.js";
+import { canSuggest, useSuggestions } from "../state/suggestions.js";
 import type { ReactNode } from "react";
 
 export interface ToolbarAction {
@@ -107,9 +108,20 @@ export const extraSelectionActions: ToolbarAction[] = [
 ];
 
 export function SelectionToolbar({ editor }: { editor: Editor }) {
-  const actions = [...FORMAT_ACTIONS, ...extraSelectionActions];
+  const role = useSuggestions((s) => s.role);
+  // Formatting needs edit (or suggest) access; commenting needs comment access; anyone can ask.
+  const actions = [
+    ...(canSuggest(role) ? FORMAT_ACTIONS : []),
+    ...extraSelectionActions.filter((a) => a.id !== "comment" || role !== "view"),
+  ];
   return (
-    <BubbleMenu editor={editor} className="vl-bubble" options={{ placement: "top" }}>
+    <BubbleMenu
+      editor={editor}
+      className="vl-bubble"
+      options={{ placement: "top" }}
+      // Unlike the default, also show for read-only documents so viewers can comment and ask.
+      shouldShow={({ view, state }) => !state.selection.empty && view.hasFocus()}
+    >
       <div role="toolbar" aria-label="Formatting" className="vl-bubble-inner">
         {actions.map((a) => (
           <button

@@ -40,6 +40,40 @@ export interface PendingInvite {
   createdAt: string;
 }
 
+export type DocRole = "view" | "comment" | "suggest" | "edit";
+
+export interface SharedDoc {
+  docId: string;
+  workspaceId: string;
+  title: string;
+  role: DocRole;
+  sharedBy: string;
+  expiresAt: string | null;
+}
+
+export interface SharePerson {
+  id: string;
+  name: string;
+  email: string;
+  avatarColor: string;
+  role: DocRole;
+  expiresAt: string | null;
+}
+
+export interface ShareLink {
+  id: string;
+  role: DocRole;
+  expiresAt: string;
+  createdAt: string;
+}
+
+export interface SharingState {
+  workspace: { id: string; members: Array<{ id: string; name: string; email: string; avatarColor: string }> };
+  people: SharePerson[];
+  links: ShareLink[];
+  publicUrl: string | null;
+}
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -52,6 +86,8 @@ export class ApiError extends Error {
 
 /** JSON request to the Vellum server with the session cookie. */
 export async function api<T>(method: string, path: string, body?: unknown): Promise<T> {
+  // State-changing requests must be JSON (the server's CSRF guard), including DELETE.
+  if (body === undefined && method !== "GET") body = {};
   const res = await fetch(`${serverBaseUrl()}${path}`, {
     method,
     credentials: "include",
@@ -107,6 +143,38 @@ export const account = {
     ),
   acceptInvite: (token: string) =>
     api<{ workspaceId: string }>("POST", `/api/invites/${encodeURIComponent(token)}/accept`, {}),
+  access: (docId: string) =>
+    api<{ role: DocRole | null; registered: boolean; workspaceId?: string }>(
+      "GET",
+      `/api/documents/${docId}/access`,
+    ),
+  sharing: (docId: string) => api<SharingState>("GET", `/api/documents/${docId}/sharing`),
+  share: (docId: string, email: string, role: DocRole) =>
+    api<SharingState>("POST", `/api/documents/${docId}/shares`, { email, role }),
+  setShareRole: (docId: string, userId: string, role: DocRole) =>
+    api<SharingState>("PATCH", `/api/documents/${docId}/shares/${userId}`, { role }),
+  unshare: (docId: string, userId: string) =>
+    api<SharingState>("DELETE", `/api/documents/${docId}/shares/${userId}`),
+  createLink: (docId: string, role: DocRole, days: number) =>
+    api<{ url: string; link: ShareLink; state: SharingState }>("POST", `/api/documents/${docId}/links`, {
+      role,
+      days,
+    }),
+  revokeLink: (docId: string, linkId: string) =>
+    api<SharingState>("DELETE", `/api/documents/${docId}/links/${linkId}`),
+  setPublic: (docId: string, enabled: boolean) =>
+    api<SharingState>("PUT", `/api/documents/${docId}/public`, { enabled }),
+  linkInfo: (token: string) =>
+    api<{ title: string; role: DocRole; expiresAt: string; sharedBy: string }>(
+      "GET",
+      `/api/share-links/${encodeURIComponent(token)}`,
+    ),
+  openLink: (token: string) =>
+    api<{ documentId: string; workspaceId: string; role: DocRole; title: string }>(
+      "POST",
+      `/api/share-links/${encodeURIComponent(token)}/open`,
+    ),
+  shared: () => api<SharedDoc[]>("GET", "/api/shared"),
   adminSettings: () => api<{ signupsEnabled: boolean }>("GET", "/api/admin/settings"),
   setAdminSettings: (b: { signupsEnabled: boolean }) =>
     api<{ signupsEnabled: boolean }>("PATCH", "/api/admin/settings", b),

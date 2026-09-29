@@ -108,7 +108,7 @@ export async function selectText(page: Page, text: string) {
                 doc: { descendants(f: (n: { isText: boolean; text?: string }, p: number) => void): void };
               };
               commands: { setTextSelection(r: { from: number; to: number }): void };
-              view: { focus(): void };
+              view: { focus(): void; editable: boolean; dom: HTMLElement };
             };
           };
         };
@@ -121,6 +121,8 @@ export async function selectText(page: Page, text: string) {
     if (from === -1) throw new Error(`text not found: ${needle}`);
     ed.commands.setTextSelection({ from, to: from + needle.length });
     ed.view.focus(); // synchronous, unlike commands.focus(), so the next keystroke lands in the editor
+    // A read-only view doesn't take DOM focus from view.focus(); focus it the way a click would.
+    if (!ed.view.editable) ed.view.dom.focus();
   }, text);
 }
 

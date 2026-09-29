@@ -2352,3 +2352,156 @@ del.vl-sug-del,
     transition: none;
   }
 }
+
+/* Presence and sharing */
+.vl-avatars {
+  margin: 0;
+  padding: 0 0 0 6px;
+  list-style: none;
+}
+
+.vl-avatar-more {
+  background: var(--panel-2);
+  color: var(--ink-2);
+  font-size: 11px;
+}
+
+.vl-role-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.vl-share-wrap {
+  position: relative;
+}
+
+.vl-share {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  width: min(460px, calc(100vw - 32px));
+  max-height: min(640px, calc(100vh - 80px));
+  padding: 16px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+  box-shadow: var(--shadow);
+}
+
+.vl-share-head {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.vl-share-head h2 {
+  margin: 0;
+  overflow: hidden;
+  font-size: 15px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.vl-share-invite {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.vl-share-invite .vl-input[type="email"] {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+
+.vl-role-select {
+  width: auto;
+}
+
+.vl-share .vl-subhead {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.vl-share-links {
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.vl-share-links li {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+}
+
+.vl-share-foot {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.vl-shared-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vl-shared-list a {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 6px;
+  color: var(--ink-2);
+  text-decoration: none;
+}
+
+.vl-shared-list a:hover,
+.vl-shared-list a[aria-current="page"] {
+  background: var(--panel-2);
+  color: var(--ink);
+}
+
+/* Other people's cursors */
+.ProseMirror-yjs-cursor {
+  position: relative;
+  margin-right: -1px;
+  margin-left: -1px;
+  border-right: 1px solid transparent;
+  border-left: 1px solid;
+  word-break: normal;
+  pointer-events: none;
+}
+
+.ProseMirror-yjs-cursor > div {
+  position: absolute;
+  top: -1.3em;
+  left: -1px;
+  padding: 0 4px;
+  border-radius: 4px 4px 4px 0;
+  color: #fff;
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.ProseMirror-yjs-selection {
+  opacity: 0.25;
+}

@@ -121,7 +121,45 @@ export function Sidebar() {
         </div>
         <CollectionsList activeId={activeId} />
       </div>
+      <SharedWithMe activeId={activeId} />
     </nav>
+  );
+}
+
+const ROLE_WORD = {
+  view: "can view",
+  comment: "can comment",
+  suggest: "can suggest",
+  edit: "can edit",
+} as const;
+
+/** Documents other people shared with you directly or by link. */
+function SharedWithMe({ activeId }: { activeId: string | null }) {
+  const shared = useApp((s) => s.shared);
+  if (!shared.length) return null;
+  return (
+    <div className="vl-nav-section">
+      <div className="vl-nav-heading">
+        <span>Shared with me</span>
+      </div>
+      <ul className="vl-shared-list" aria-label="Shared with me">
+        {shared.map((d) => (
+          <li key={d.docId}>
+            <a
+              href={docPath(d.docId)}
+              aria-current={activeId === d.docId ? "page" : undefined}
+              title={`${d.sharedBy} shared this · you ${ROLE_WORD[d.role]}`}
+              onClick={(e) => {
+                e.preventDefault();
+                navigate(docPath(d.docId));
+              }}
+            >
+              <Users size={13} aria-hidden /> {displayTitle(d.title)}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

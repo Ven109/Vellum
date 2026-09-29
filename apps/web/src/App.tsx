@@ -12,6 +12,7 @@ import {
   InviteScreen,
   ResetPasswordScreen,
   SetupScreen,
+  ShareLinkScreen,
   SignInScreen,
   SignUpScreen,
 } from "./screens/AuthScreens.js";
@@ -38,6 +39,8 @@ export function App() {
   if (status === "checking") return <Loading />;
   if (status === "setup") return <SetupScreen />;
   if (invite) return <InviteScreen token={decodeURIComponent(invite)} />;
+  const shareLink = /^\/s\/([^/]+)$/.exec(path)?.[1];
+  if (shareLink && status !== "local") return <ShareLinkScreen token={decodeURIComponent(shareLink)} />;
   if (status === "signed-out") {
     if (path === "/sign-up") return <SignUpScreen />;
     if (path === "/forgot-password") return <ForgotPasswordScreen />;

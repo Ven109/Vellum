@@ -13,6 +13,10 @@ import { authPlugin } from "./auth/routes.js";
 import { AccountService } from "./auth/service.js";
 import type { UserRow } from "./auth/service.js";
 import { createMailer } from "./mail.js";
+import { ReadOnlyError } from "./sharing/guard.js";
+import { sharingPlugin } from "./sharing/routes.js";
+import { SharingService, WRITABLE_ROOTS } from "./sharing/service.js";
+import type { DocRole } from "./sharing/service.js";
 
 export interface AppContext {
   config: ServerConfig;
@@ -20,27 +24,29 @@ export interface AppContext {
   docs: DocStore;
   rooms: RoomManager;
   accounts: AccountService;
+  sharing: SharingService;
 }
 
 /**
- * Who may open a sync room. Workspace rooms (`wsp_…`) need membership. Document rooms need membership
- * of the document's workspace; a new document is registered to the workspace named in `?ws=` the first
- * time a member (not a guest) opens it.
+ * Someone's role in a sync room, or undefined for no access. Workspace rooms (`wsp_…`) need membership.
+ * Document rooms use the document's workspace and any shares; a new document is registered to the
+ * workspace named in `?ws=` the first time a member (not a guest) opens it.
  */
-export function canAccessRoom(
+export function roomRole(
   accounts: AccountService,
+  sharing: SharingService,
   user: UserRow,
   roomId: string,
   wsHint?: string,
-): boolean {
-  if (roomId.startsWith("wsp_")) return !!accounts.roleIn(roomId, user.id);
+): DocRole | undefined {
+  if (roomId.startsWith("wsp_")) return accounts.roleIn(roomId, user.id) ? "edit" : undefined;
   const ws = accounts.documentWorkspace(roomId);
-  if (ws) return !!accounts.roleIn(ws, user.id);
-  if (!wsHint) return false;
+  if (ws) return sharing.roleFor(roomId, user.id, ws);
+  if (!wsHint) return undefined;
   const role = accounts.roleIn(wsHint, user.id);
-  if (!role || role === "guest") return false;
+  if (!role || role === "guest") return undefined;
   accounts.registerDocument(roomId, wsHint, user.id);
-  return true;
+  return "edit";
 }
 
 declare module "fastify" {
@@ -66,7 +72,8 @@ export async function buildApp(
   const docs = new DocStore(db);
   const rooms = new RoomManager(docs);
   const accounts = new AccountService(db);
-  app.decorate("ctx", { config, db, docs, rooms, accounts });
+  const sharing = new SharingService(db, accounts);
+  app.decorate("ctx", { config, db, docs, rooms, accounts, sharing });
 
   await app.register(fastifyCookie);
   await app.register(fastifyWebsocket, { options: { maxPayload: 16 * 1024 * 1024 } });
@@ -77,6 +84,7 @@ export async function buildApp(
     env: opts.env ?? process.env,
     fetchImpl: opts.fetchImpl,
   });
+  sharingPlugin(app, { accounts, sharing, rooms, docs, publicUrl: config.publicUrl.replace(/\/+$/, "") });
 
   app.get("/api/health", async () => ({
     ok: true,
@@ -97,16 +105,21 @@ export async function buildApp(
         socket.close(4401, "sign in required");
         return;
       }
-      if (!canAccessRoom(accounts, req.user, docId, req.query.ws)) {
+      const role = roomRole(accounts, sharing, req.user, docId, req.query.ws);
+      if (!role) {
         socket.close(4403, "no access");
         return;
       }
-      const handle = rooms.join(docId, {
-        send: (data) => {
-          if (socket.readyState === socket.OPEN) socket.send(data);
+      const handle = rooms.join(
+        docId,
+        {
+          send: (data) => {
+            if (socket.readyState === socket.OPEN) socket.send(data);
+          },
+          close: () => socket.close(1001, "server shutting down"),
         },
-        close: () => socket.close(1001, "server shutting down"),
-      });
+        { writableRoots: WRITABLE_ROOTS[role] },
+      );
       socket.binaryType = "arraybuffer";
       // Process messages strictly in order: acks must follow persistence of the update they cover.
       let queue = Promise.resolve();
@@ -118,6 +131,10 @@ export async function buildApp(
         queue = queue
           .then(() => handle.receive(bytes))
           .catch((err: unknown) => {
+            if (err instanceof ReadOnlyError) {
+              socket.close(4403, "read only");
+              return;
+            }
             req.log.warn({ err, docId }, "bad sync message");
             socket.close(4400, "bad message");
           });

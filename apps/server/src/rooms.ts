@@ -1,8 +1,10 @@
 import { sync } from "@vellum/core";
+import * as encoding from "lib0/encoding";
 import * as awarenessProtocol from "y-protocols/awareness";
 import type * as Y from "yjs";
 import { COMPACT_THRESHOLD } from "./doc-store.js";
 import type { DocStore } from "./doc-store.js";
+import { checkWrite } from "./sharing/guard.js";
 
 export interface Connection {
   send(data: Uint8Array): void;
@@ -43,7 +45,11 @@ export class RoomManager {
   }
 
   /** Attach a connection to a document room. Returns a handler for incoming messages. */
-  join(docId: string, conn: Connection): { receive(data: Uint8Array): Promise<void>; leave(): void } {
+  join(
+    docId: string,
+    conn: Connection,
+    opts: { writableRoots?: readonly string[] | null } = {},
+  ): { receive(data: Uint8Array): Promise<void>; leave(): void } {
     const room = this.room(docId);
     const clients = new Set<number>();
     const session = new sync.SyncSession(
@@ -60,9 +66,19 @@ export class RoomManager {
     room.awareness.on("update", trackClients);
     room.sessions.set(conn, { session, clients });
     session.start();
+    // Tell the newcomer who is already here.
+    const present = [...room.awareness.getStates().keys()];
+    if (present.length) {
+      const enc = encoding.createEncoder();
+      encoding.writeVarUint(enc, sync.MessageType.Awareness);
+      encoding.writeVarUint8Array(enc, awarenessProtocol.encodeAwarenessUpdate(room.awareness, present));
+      conn.send(encoding.toUint8Array(enc));
+    }
 
     return {
       receive: async (data) => {
+        // Viewers and commenters may only change what their role allows; anything else is refused.
+        checkWrite(room.doc, data, opts.writableRoots ?? null);
         await session.receive(data);
       },
       leave: () => {
