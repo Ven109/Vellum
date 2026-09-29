@@ -1,6 +1,7 @@
 import { getSchema } from "@tiptap/core";
 import { DOMParser as PMDOMParser } from "@tiptap/pm/model";
 import type { Schema } from "@tiptap/pm/model";
+import { DocumentStatus } from "@vellum/core";
 import { docToMarkdown, vellumExtensions } from "@vellum/editor";
 
 /**
@@ -17,9 +18,11 @@ export interface SourceFile {
 export interface ImportedDoc {
   title: string;
   markdown: string;
-  /** Folder the document came from, used as its collection. */
+  /** Folder the document came from (or its front-matter collection), used as its collection. */
   folder: string | null;
   source: string;
+  /** From a Vellum export's front matter. */
+  status?: DocumentStatus;
 }
 
 export interface ImportResult {
@@ -89,12 +92,38 @@ function imageResolver(files: Map<string, SourceFile>, fromDir: string) {
   };
 }
 
-/** Split YAML front matter; returns its title (if any) and the body. */
-function frontMatter(text: string): { title?: string; body: string } {
+const STATUSES = DocumentStatus.options;
+
+/** Split YAML front matter; returns the fields Vellum understands and the body. */
+function frontMatter(text: string): {
+  title?: string;
+  collection?: string;
+  status?: ImportedDoc["status"];
+  body: string;
+} {
   const m = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(text);
   if (!m) return { body: text };
-  const title = /^title:\s*["']?(.+?)["']?\s*$/m.exec(m[1]!)?.[1];
-  return { ...(title ? { title } : {}), body: text.slice(m[0].length) };
+  const field = (name: string) => {
+    const raw = new RegExp(`^${name}:\\s*(.+?)\\s*$`, "m").exec(m[1]!)?.[1];
+    if (!raw) return undefined;
+    if (raw.startsWith('"')) {
+      try {
+        return JSON.parse(raw) as string;
+      } catch {
+        return raw.slice(1, -1);
+      }
+    }
+    return raw.replace(/^'(.*)'$/, "$1");
+  };
+  const status = field("status");
+  return {
+    ...(field("title") ? { title: field("title") } : {}),
+    ...(field("collection") ? { collection: field("collection") } : {}),
+    ...(status && (STATUSES as readonly string[]).includes(status)
+      ? { status: status as ImportedDoc["status"] }
+      : {}),
+    body: text.slice(m[0].length),
+  };
 }
 
 export function convertMarkdown(file: SourceFile, files: Map<string, SourceFile>): ImportedDoc {
@@ -125,8 +154,9 @@ export function convertMarkdown(file: SourceFile, files: Map<string, SourceFile>
   return {
     title: title ? stripNotionId(title) : titleFromFilename(file.path),
     markdown: body.trimEnd() + "\n",
-    folder: null,
+    folder: fm.collection ?? null,
     source: file.path,
+    ...(fm.status ? { status: fm.status } : {}),
   };
 }
 
@@ -248,11 +278,22 @@ export async function convertFiles(input: SourceFile[]): Promise<ImportResult> {
   const files = await expandArchives(input.map((f) => ({ ...f, path: normalise(f.path) })));
   const byPath = new Map(files.map((f) => [f.path, f]));
   const root = commonRoot(files.map((f) => f.path));
+  // A Vellum export: its README and manifest describe the files rather than being documents.
+  const isVellumExport = files.some((f) => {
+    if (basename(f.path) !== "vellum.json") return false;
+    try {
+      return (JSON.parse(decoder.decode(f.data)) as { format?: string }).format === "vellum-export";
+    } catch {
+      return false;
+    }
+  });
   const docs: ImportedDoc[] = [];
   const skipped: ImportResult["skipped"] = [];
 
   for (const f of files) {
     const kind = ext(f.path);
+    if (isVellumExport && ["vellum.json", "README.md"].includes(f.path.slice(root ? root.length + 1 : 0)))
+      continue;
     let doc: ImportedDoc | null = null;
     try {
       if (kind === "md" || kind === "markdown" || kind === "txt") doc = convertMarkdown(f, byPath);
@@ -272,7 +313,8 @@ export async function convertFiles(input: SourceFile[]): Promise<ImportResult> {
     if (!doc) continue;
     const rel = root ? f.path.slice(root.length + 1) : f.path;
     const dir = dirname(rel);
-    doc.folder = dir ? stripNotionId(dir.split("/")[0]!) : null;
+    if (isVellumExport) doc.folder ??= null;
+    else doc.folder ??= dir ? stripNotionId(dir.split("/")[0]!) : null;
     docs.push(doc);
   }
   return { docs, skipped };

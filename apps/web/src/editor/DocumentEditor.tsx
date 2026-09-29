@@ -14,6 +14,7 @@ import type { Awareness } from "y-protocols/awareness";
 import type * as Y from "yjs";
 import { indexDocument } from "../data/search.js";
 import { useApp } from "../state/app.js";
+import { usePreferences } from "../state/preferences.js";
 import { useCommentsBinding } from "../state/comments.js";
 import { useSuggestionsBinding } from "../state/suggestions.js";
 import { useDocSession } from "../state/session.js";
@@ -133,6 +134,10 @@ export function DocumentEditor({ docId, ydoc, awareness, live, initialMarkdown, 
     if (editor && !editor.isDestroyed)
       editor.view.dispatch(editor.state.tr.setMeta(repeatedPhrasesKey, flagRepeated));
   }, [editor, flagRepeated]);
+  const spellcheck = usePreferences((s) => s.prefs.spellcheck);
+  useEffect(() => {
+    if (editor && !editor.isDestroyed) editor.view.dom.setAttribute("spellcheck", String(spellcheck));
+  }, [editor, spellcheck]);
   useSessionTracking(editor, docId, primary);
 
   return (

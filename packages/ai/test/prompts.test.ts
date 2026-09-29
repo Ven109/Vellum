@@ -31,3 +31,31 @@ describe("prompts", () => {
     expect(cleanRewrite('He said "hi" then left.')).toBe('He said "hi" then left.');
   });
 });
+
+describe("house rules in outputs", () => {
+  const rules = "- Use British spelling.\n2. No exclamation marks.\n\nSay “people”, not “users”.";
+
+  it("numbers the rules and asks the model to report the ones that changed its output", async () => {
+    const { buildSystemPrompt, houseRuleList } = await import("../src/prompts.js");
+    expect(houseRuleList(rules)).toEqual([
+      "Use British spelling.",
+      "No exclamation marks.",
+      "Say “people”, not “users”.",
+    ]);
+    const { system } = buildSystemPrompt({ documentTitle: "T", houseRules: rules });
+    expect(system).toContain("1. Use British spelling.\n2. No exclamation marks.\n3. Say “people”");
+    expect(system).toContain("[rules: 1, 3]");
+  });
+
+  it("extracts the rules line and hides a partial one while streaming", async () => {
+    const { extractAppliedRules, hidePartialRulesMarker } = await import("../src/prompts.js");
+    expect(extractAppliedRules("The colour of it.\n[rules: 1, 9, 1]", rules)).toEqual({
+      text: "The colour of it.",
+      applied: ["Use British spelling."],
+    });
+    expect(extractAppliedRules("No marker here.", rules)).toEqual({ text: "No marker here.", applied: [] });
+    expect(hidePartialRulesMarker("Done.\n[ru")).toBe("Done.");
+    expect(hidePartialRulesMarker("Done.\n[rules: 2")).toBe("Done.");
+    expect(hidePartialRulesMarker("A [bracket] in text")).toBe("A [bracket] in text");
+  });
+});

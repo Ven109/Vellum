@@ -42,15 +42,13 @@ export function buildSystemPrompt(ctx: AssistantContext): BuiltPrompt {
     );
     sources.push({ kind: "voice", label: "Voice profile", detail: `${ctx.voiceTraits.length} traits` });
   }
-  if (ctx.houseRules?.trim()) {
+  const rules = houseRuleList(ctx.houseRules);
+  if (rules.length) {
     parts.push(
-      `<house_rules>\nWorkspace house rules. Follow them in everything you write:\n${ctx.houseRules.trim()}\n</house_rules>`,
+      `<house_rules>\nWorkspace house rules. Follow them in everything you write:\n${rules.map((r, i) => `${i + 1}. ${r}`).join("\n")}\n</house_rules>\n` +
+        `If following a house rule made you write something differently from how you otherwise would have, end your reply with one final line exactly like ${RULES_MARKER_EXAMPLE}, listing only those rule numbers. Leave the line out when no rule changed what you wrote.`,
     );
-    sources.push({
-      kind: "house-rules",
-      label: "House rules",
-      detail: `${ctx.houseRules.trim().split("\n").filter(Boolean).length} rules`,
-    });
+    sources.push({ kind: "house-rules", label: "House rules", detail: `${rules.length} rules` });
   }
   if (ctx.document !== undefined) {
     parts.push(
@@ -69,6 +67,47 @@ export function buildSystemPrompt(ctx: AssistantContext): BuiltPrompt {
     sources.push({ kind: "selection", label: "Selection", detail: `${words(ctx.selection)} words` });
   }
   return { system: parts.join("\n\n"), sources };
+}
+
+const RULES_MARKER_EXAMPLE = "[rules: 1, 3]";
+const RULES_MARKER = /\n*\s*\[rules:\s*([\d,\s]*)\]\s*$/i;
+
+/** House rules as a list: one per non-empty line, list bullets removed. */
+export function houseRuleList(text: string | undefined): string[] {
+  return (text ?? "")
+    .split("\n")
+    .map((l) => l.replace(/^\s*(?:[-*•]|\d+[.)])\s+/, "").trim())
+    .filter(Boolean);
+}
+
+/**
+ * Split the "[rules: …]" line the model adds when a house rule changed its output from the text, and
+ * return the rules it names. Numbers that don't match a rule are ignored.
+ */
+export function extractAppliedRules(
+  text: string,
+  houseRules: string | undefined,
+): { text: string; applied: string[] } {
+  const m = RULES_MARKER.exec(text);
+  if (!m) return { text, applied: [] };
+  const rules = houseRuleList(houseRules);
+  const applied = [
+    ...new Set(
+      m[1]!
+        .split(",")
+        .map((n) => Number(n.trim()))
+        .filter((n) => Number.isInteger(n) && n >= 1 && n <= rules.length),
+    ),
+  ].map((n) => rules[n - 1]!);
+  return { text: text.slice(0, m.index).trimEnd(), applied };
+}
+
+/** While streaming, hide a rules line that has started arriving but isn't finished yet. */
+export function hidePartialRulesMarker(text: string): string {
+  const full = RULES_MARKER.exec(text);
+  if (full) return text.slice(0, full.index).trimEnd();
+  const partial = /\n\s*\[(?:r(?:u(?:l(?:e(?:s(?::[\d,\s]*)?)?)?)?)?)?$/i.exec(text);
+  return partial ? text.slice(0, partial.index) : text;
 }
 
 function escapeAttr(s: string): string {

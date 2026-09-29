@@ -1,4 +1,12 @@
-import { ProviderError, adapterFor, buildSystemPrompt, cleanRewrite, rewriteUserMessage } from "@vellum/ai";
+import {
+  ProviderError,
+  adapterFor,
+  buildSystemPrompt,
+  cleanRewrite,
+  extractAppliedRules,
+  hidePartialRulesMarker,
+  rewriteUserMessage,
+} from "@vellum/ai";
 import type { Usage } from "@vellum/ai";
 import {
   acceptProposal,
@@ -19,6 +27,8 @@ import { useDocSession } from "./session.js";
 
 interface RewriteState {
   active: boolean;
+  /** House rules the assistant says changed the current proposal. */
+  appliedRules: string[];
   streaming: boolean;
   instruction: string;
   error: string | null;
@@ -48,6 +58,7 @@ export const useRewrite = create<RewriteState>((set, get) => ({
   usage: null,
   controller: null,
   range: null,
+  appliedRules: [],
 
   async request(instruction) {
     const editor = useDocSession.getState().editor;
@@ -71,6 +82,7 @@ export const useRewrite = create<RewriteState>((set, get) => ({
       error: null,
       model: target.model,
       usage: null,
+      appliedRules: [],
       controller,
       range: { from: proposal.from, to: proposal.to },
     });
@@ -88,14 +100,18 @@ export const useRewrite = create<RewriteState>((set, get) => ({
       })) {
         if (ev.type === "text") {
           text += ev.text;
-          updateProposal(editor, text.trimStart(), true);
+          updateProposal(editor, hidePartialRulesMarker(text).trimStart(), true);
         } else if (ev.type === "usage") {
           if (ev.usage.inputTokens !== undefined) usage.inputTokens = ev.usage.inputTokens;
           if (ev.usage.outputTokens !== undefined) usage.outputTokens = ev.usage.outputTokens;
         } else set({ model: ev.model });
       }
-      updateProposal(editor, cleanRewrite(text), false);
-      set({ streaming: false, usage });
+      const { text: finalText, applied } = extractAppliedRules(
+        text,
+        useApp.getState().workspace?.settings.houseRules,
+      );
+      updateProposal(editor, cleanRewrite(finalText), false);
+      set({ streaming: false, usage, appliedRules: applied });
       void useUsage.getState().record({
         providerId: target.provider.id,
         kind: target.provider.kind,
@@ -107,7 +123,7 @@ export const useRewrite = create<RewriteState>((set, get) => ({
       const err = e instanceof ProviderError ? e : new ProviderError("unknown", String(e));
       if (err.code === "aborted") {
         // Stop keeps what was written so far so the writer can still accept or discard it.
-        updateProposal(editor, cleanRewrite(text), false);
+        updateProposal(editor, cleanRewrite(hidePartialRulesMarker(text)), false);
         set({ streaming: false, usage });
       } else {
         discardProposal(editor);

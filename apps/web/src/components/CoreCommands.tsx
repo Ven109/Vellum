@@ -5,6 +5,7 @@ import {
   FilePlus2,
   FolderPlus,
   History,
+  Keyboard,
   Library,
   Link2,
   Maximize2,
@@ -138,6 +139,14 @@ export function CoreCommands() {
             name,
           );
         },
+      },
+      {
+        id: "help.shortcuts",
+        title: "Keyboard shortcuts",
+        section: "Navigation",
+        keywords: ["keys", "hotkeys", "help"],
+        icon: <Keyboard size={15} />,
+        run: () => navigate("/settings/shortcuts"),
       },
       {
         id: "view.closeSplit",

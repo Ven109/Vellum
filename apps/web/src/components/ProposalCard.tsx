@@ -1,5 +1,6 @@
 import { getProposal, proposalStats } from "@vellum/editor";
 import { useApp } from "../state/app.js";
+import { RulesApplied } from "./RulesApplied.js";
 import { Check, RotateCcw, Square, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useDocSession } from "../state/session.js";
@@ -8,7 +9,8 @@ import { useRewrite } from "../state/rewrite.js";
 /** Floating card under a proposed rewrite: Accept / Try again / Discard, the word delta, and Stop. */
 export function ProposalCard() {
   const editor = useDocSession((s) => s.editor);
-  const { active, streaming, error, model, instruction, accept, tryAgain, discard, stop } = useRewrite();
+  const { active, streaming, error, model, instruction, appliedRules, accept, tryAgain, discard, stop } =
+    useRewrite();
   const [, force] = useState(0);
 
   useEffect(() => {
@@ -88,6 +90,7 @@ export function ProposalCard() {
         </span>
       )}
       {model && <span className="vl-muted vl-model">{model}</span>}
+      {!streaming && <RulesApplied rules={appliedRules} />}
       {!inline && (
         <blockquote className="vl-proposal-preview" data-testid="proposal-preview">
           {proposal.proposed || "…"}
