@@ -147,3 +147,17 @@ You can cut in at any time, and you'll be obeyed.
   - **Ignore** carries on as if you hadn't said it.
 - **Pause writing** and **Take over** hand control back without ending the session. The agent keeps
   listening.
+
+## The transcript
+
+Each document keeps its voice transcript with it. The transcript lives in the document's CRDT (a
+`voice` map next to the text), so it syncs, works offline, and goes wherever the document goes.
+
+- It holds every turn, yours and the agent's, with the time it was said, plus the brief and the
+  constraints as they stand.
+- Opening the voice screen shows the conversation so far, even before you start talking. A new session
+  picks up the brief and constraints from last time.
+- Paragraphs the agent writes remember the turn that produced them. On the voice screen, clicking one
+  highlights that turn, and clicking a turn highlights its paragraphs. In the editor, hovering one shows
+  what you said, and when. A revised paragraph points to the instruction that changed it.
+- None of this goes into Markdown exports. The text stays plain.

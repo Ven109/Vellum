@@ -4155,3 +4155,29 @@ del.vl-sug-del,
   color: var(--accent);
   font-size: 12px;
 }
+
+.vl-turn[aria-current] {
+  margin: -4px -8px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--ai);
+}
+
+.vl-turn[data-speaker="you"] {
+  cursor: pointer;
+}
+
+.vl-turn time {
+  margin-left: 4px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.vl-from-voice {
+  border-left: 2px solid transparent;
+}
+
+.vl-from-voice:hover {
+  border-left-color: var(--ai);
+}
