@@ -132,3 +132,5 @@ jobs:
       - name: Desktop tests (virtual display)
         if: matrix.target == 'desktop' && runner.os == 'Linux'
         run: xvfb-run -a pnpm --filter @vellum/desktop exec playwright test
+        env:
+          DEBUG: pw:browser

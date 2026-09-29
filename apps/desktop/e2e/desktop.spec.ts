@@ -1,9 +1,12 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { _electron as electron, expect, test } from "@playwright/test";
 import type { ElectronApplication, Page } from "@playwright/test";
+
+// No trailing separator: on Windows "C:\\app\\" would escape the closing quote of the argument.
+const APP_DIR = dirname(fileURLToPath(new URL("../package.json", import.meta.url)));
 
 let app: ElectronApplication;
 let page: Page;
@@ -11,7 +14,7 @@ let userData: string;
 
 async function launch() {
   app = await electron.launch({
-    args: [fileURLToPath(new URL("..", import.meta.url)), `--user-data-dir=${userData}`],
+    args: [APP_DIR, `--user-data-dir=${userData}`],
     env: { ...process.env, ELECTRON_ENABLE_LOGGING: "0" },
   });
   page = await app.firstWindow();
