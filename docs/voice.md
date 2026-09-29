@@ -116,3 +116,17 @@ If you give an instruction while the agent is writing, a card asks what to do: *
 **Queue it** or **Ignore**.
 
 Without an AI provider, voice mode still writes down what you say, but it can't draft or revise.
+
+## Writing into the live document
+
+The agent writes into the real document, word by word as the model streams, and you can keep typing
+anywhere else in it at the same time.
+
+- Text the agent is still writing is highlighted. The highlight comes off once the text settles.
+- **If you type in the paragraph the agent is writing, it yields**: it stops there, keeps what it had
+  written, and says so. Say "carry on" when you want it to continue. A collaborator editing that
+  paragraph has the same effect.
+- History records your work and the agent's separately. Before each piece of agent writing, your own
+  changes are saved as a checkpoint. Afterwards, the agent's writing is saved as an **Assistant edit**
+  that names the model and who asked for it. Agent writing never ends up in your own autosaves, and
+  never in your undo history.

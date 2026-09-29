@@ -12,6 +12,7 @@ import type {
 import { create } from "zustand";
 import { openRecognizer, ttsConfig, useSpeech } from "../data/speech.js";
 import { assistantContext } from "../state/assistant.js";
+import { useApp } from "../state/app.js";
 import { useDocSession } from "../state/session.js";
 import { MicrophoneError, openMicrophone, preferredMicrophone } from "./capture.js";
 import type { MicSession } from "./capture.js";
@@ -182,6 +183,17 @@ export const useVoiceSession = create<VoiceSessionState>((set, get) => {
               .filter(Boolean)
               .join("\n\n"),
           onWriting: (w) => set({ agentWriting: w }),
+          attribution: () => {
+            const user = useApp.getState().user;
+            const docId = get().docId;
+            if (!user || !docId) return null;
+            return {
+              docId,
+              userId: user.id,
+              providerId: model?.label ?? "none",
+              model: model?.model ?? "voice (no model)",
+            };
+          },
         });
         mic = await openMicrophone({
           deviceId: preferredMicrophone(),

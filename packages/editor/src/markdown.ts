@@ -137,6 +137,8 @@ export const markdownSerializer = new MarkdownSerializer(
     // Pending suggestions are review state, not content; their text is kept as-is.
     suggestionInsert: { open: "", close: "" },
     suggestionDelete: { open: "", close: "" },
+    // Text the voice agent is still writing: shown differently, stored as plain text.
+    agentText: { open: "", close: "" },
     link: {
       open: "[",
       close(_state, mark) {

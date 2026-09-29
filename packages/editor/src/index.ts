@@ -8,3 +8,4 @@ export * from "./textmap.js";
 export * from "./suggestions.js";
 export * from "./focus.js";
 export * from "./repeated.js";
+export * from "./agent.js";

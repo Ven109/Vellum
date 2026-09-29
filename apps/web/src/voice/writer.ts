@@ -1,7 +1,9 @@
 import type { Editor } from "@tiptap/core";
-import { docToMarkdown } from "@vellum/editor";
+import type { VersionAuthor } from "@vellum/core";
+import { AGENT_META, AgentStream, docToMarkdown } from "@vellum/editor";
 import { extractJson } from "@vellum/voice";
 import type { Llm, WriteAction } from "@vellum/voice";
+import { recordVersion } from "../data/versions.js";
 
 export interface WriterOptions {
   editor: () => Editor | null;
@@ -9,7 +11,12 @@ export interface WriterOptions {
   /** The system prompt for drafting: house rules, voice, brief and constraints. */
   system: () => string;
   onWriting?: (writing: boolean) => void;
+  /** For history: which document, and who the agent writes on behalf of. */
+  attribution?: () => { docId: string; userId: string; providerId: string; model: string } | null;
 }
+
+export const YIELD_NOTE =
+  "You're writing in that paragraph, so I've stopped there. Tell me when to carry on.";
 
 const COMPOSE_TAIL = `Write only the new text to add at the end of the draft, as plain paragraphs separated by blank lines.
 No preamble, no headings unless asked, no commentary, no quotation marks around the whole thing.`;
@@ -29,8 +36,9 @@ function paragraphs(editor: Editor) {
 }
 
 /**
- * Carries out the conversation's write actions in the live document. Text is appended as it streams from
- * the model, so the writer watches the draft grow.
+ * Carries out the conversation's write actions in the live document. Drafting streams in word by word,
+ * marked while in flight, and the writer can type at the same time; if they type in the paragraph being
+ * written, the agent yields and says so.
  */
 export class DocWriter {
   private controller: AbortController | null = null;
@@ -47,10 +55,37 @@ export class DocWriter {
     this.controller?.abort();
   }
 
-  /** Returns what happened, for the transcript ("" when nothing needed saying). */
+  /**
+   * Carry out one action. Returns what to tell the writer ("" when nothing needs saying). The writer's own
+   * work is saved as a version first, and what the agent wrote as a version attributed to it.
+   */
   async run(action: WriteAction): Promise<string> {
     const editor = this.o.editor();
     if (!editor) return "";
+    const who = this.o.attribution?.();
+    if (who)
+      await recordVersion(
+        who.docId,
+        docToMarkdown(editor.state.doc),
+        { kind: "user", userId: who.userId },
+        "checkpoint",
+      ).catch(() => null);
+    const before = docToMarkdown(editor.state.doc);
+    const note = await this.act(editor, action);
+    const after = docToMarkdown(editor.state.doc);
+    if (who && after !== before) {
+      const author: VersionAuthor = {
+        kind: "assistant",
+        providerId: who.providerId,
+        model: who.model,
+        requestedBy: who.userId,
+      };
+      await recordVersion(who.docId, after, author, "assistant").catch(() => null);
+    }
+    return note;
+  }
+
+  private async act(editor: Editor, action: WriteAction): Promise<string> {
     if (action.type === "insert") {
       this.insertParagraph(editor, action.text, action.position === "start" ? "start" : "end");
       return "";
@@ -72,8 +107,7 @@ export class DocWriter {
         ? await this.compose(editor, llm, action, controller.signal)
         : await this.revise(editor, llm, action.instruction, controller.signal);
     } catch (e) {
-      if ((e as { name?: string; code?: string })?.name === "AbortError" || controller.signal.aborted)
-        return "";
+      if ((e as { name?: string })?.name === "AbortError" || controller.signal.aborted) return "";
       return `I couldn't write that: ${(e as Error).message}`;
     } finally {
       if (this.controller === controller) this.controller = null;
@@ -82,15 +116,10 @@ export class DocWriter {
   }
 
   private insertParagraph(editor: Editor, text: string, where: "start" | "end") {
-    const node = { type: "paragraph", content: text ? [{ type: "text", text }] : [] };
-    const first = editor.state.doc.firstChild;
-    const onlyEmpty = editor.state.doc.childCount === 1 && first?.isTextblock && first.content.size === 0;
-    if (onlyEmpty) editor.chain().insertContentAt({ from: 0, to: editor.state.doc.content.size }, node).run();
-    else
-      editor
-        .chain()
-        .insertContentAt(where === "start" ? 0 : editor.state.doc.content.size, node)
-        .run();
+    const s = new AgentStream(editor);
+    s.begin(where);
+    s.write(text);
+    s.end();
   }
 
   private async compose(
@@ -104,29 +133,30 @@ export class DocWriter {
       ? `\n\nWhat the writer just said (keep their points and their specific words where you can):\n${action.material.map((m) => `- ${m}`).join("\n")}`
       : "";
     const user = `${action.instruction}${material}\n\nThe draft so far:\n<draft>\n${draft || "(empty)"}\n</draft>\n\n${COMPOSE_TAIL}`;
-    let buffer = "";
-    let started = false;
-    const flush = (final: boolean) => {
-      // Write whole paragraphs as they complete; the last one when the stream ends.
-      const parts = buffer.split(/\n\s*\n/);
-      const ready = final ? parts : parts.slice(0, -1);
-      buffer = final ? "" : parts.at(-1)!;
-      for (const p of ready.map((x) => x.trim()).filter(Boolean)) {
-        this.insertParagraph(editor, p.replace(/^["“]|["”]$/g, ""), "end");
-        started = true;
+    const stream = new AgentStream(editor);
+    stream.onYield = () => this.controller?.abort();
+    stream.begin("end");
+    let first = true;
+    try {
+      for await (let chunk of llm({
+        system: this.o.system(),
+        messages: [{ role: "user", content: user }],
+        maxTokens: 2000,
+        signal,
+      })) {
+        if (first) chunk = chunk.replace(/^\s*["“]/, "");
+        first = false;
+        stream.write(chunk);
       }
-    };
-    for await (const chunk of llm({
-      system: this.o.system(),
-      messages: [{ role: "user", content: user }],
-      maxTokens: 2000,
-      signal,
-    })) {
-      buffer += chunk;
-      flush(false);
+    } catch (e) {
+      if (stream.result === "yielded") return YIELD_NOTE;
+      // Stopped (pause, take over, a new instruction): keep what was written.
+      stream.end("stopped");
+      throw e;
     }
-    flush(true);
-    return started ? "" : "I didn't have anything to add there.";
+    if (stream.result === "yielded") return YIELD_NOTE;
+    stream.end("done");
+    return stream.hasWritten ? "" : "I didn't have anything to add there.";
   }
 
   private async revise(editor: Editor, llm: Llm, instruction: string, signal: AbortSignal) {
@@ -148,14 +178,15 @@ export class DocWriter {
       .sort((a, b) => b.paragraph! - a.paragraph!); // back to front, so positions stay valid
     if (!edits.length) return "I wasn't sure what to change. Could you say it another way?";
     const current = paragraphs(editor);
-    let tr = editor.state.tr;
+    const tr = editor.state.tr;
     for (const e of edits) {
       const p = current.find((x) => x.n === e.paragraph);
       if (!p) continue;
       const text = e.text!.trim();
-      if (!text) tr = tr.delete(p.pos, p.pos + p.size);
-      else tr = tr.replaceWith(p.pos + 1, p.pos + p.size - 1, editor.schema.text(text));
+      if (!text) tr.delete(p.pos, p.pos + p.size);
+      else tr.replaceWith(p.pos + 1, p.pos + p.size - 1, editor.schema.text(text));
     }
+    tr.setMeta(AGENT_META, true);
     editor.view.dispatch(tr);
     return "";
   }
