@@ -105,7 +105,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Build web
         if: matrix.target == 'web'
-        run: pnpm -r --if-present --filter "!@vellum/desktop" run build
+        # Not the root package: its own build script builds every package again, concurrently.
+        run: pnpm -r --if-present --filter "!@vellum/desktop" --filter "!vellum" run build
       - name: Build desktop (unsigned)
         if: matrix.target == 'desktop'
         env:
