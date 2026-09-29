@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -124,4 +124,91 @@ test("provider keys go to the OS keychain when there is one", async () => {
   // Without a keychain (e.g. Linux with no keyring) the bridge refuses, and the app uses its own
   // encrypted store instead of saving keys in the clear.
   else expect(result).toEqual({ available: false, refused: true });
+});
+
+test("connects to a Vellum server with a token and syncs drafts to it", async () => {
+  const { execSync, spawn } = await import("node:child_process");
+  const { createServer } = await import("node:net");
+  const root = fileURLToPath(new URL("../..", import.meta.url));
+  if (!existsSync(join(root, "server/dist/main.js")))
+    execSync("pnpm --filter @vellum/server build", { cwd: root, stdio: "ignore" });
+  const port = await new Promise<number>((resolve) => {
+    const s = createServer().listen(0, "127.0.0.1", () => {
+      const p = (s.address() as { port: number }).port;
+      s.close(() => resolve(p));
+    });
+  });
+  const dataDir = mkdtempSync(join(tmpdir(), "vellum-server-"));
+  const server = spawn(
+    process.execPath,
+    ["--disable-warning=ExperimentalWarning", join(root, "server/dist/main.js")],
+    {
+      env: {
+        ...process.env,
+        PORT: String(port),
+        HOST: "127.0.0.1",
+        VELLUM_DATA_DIR: dataDir,
+        LOG_LEVEL: "warn",
+      },
+      stdio: "ignore",
+    },
+  );
+  const base = `http://127.0.0.1:${port}`;
+  try {
+    for (let i = 0; i < 100; i++) {
+      if (
+        await fetch(`${base}/api/health`).then(
+          (r) => r.ok,
+          () => false,
+        )
+      )
+        break;
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    const setup = await fetch(`${base}/api/setup`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-vellum-token": "1" },
+      body: JSON.stringify({
+        email: "desk@example.com",
+        name: "Desk",
+        password: "a long desktop password",
+        workspaceName: "Team",
+      }),
+    }).then((r) => r.json() as Promise<{ token: string; workspaces: Array<{ id: string }> }>);
+
+    await page.evaluate(() => {
+      history.pushState(null, "", "/settings/account");
+      dispatchEvent(new PopStateEvent("popstate"));
+    });
+    await page.getByLabel("Server address").fill(base);
+    await page.getByRole("button", { name: "Connect" }).click();
+    await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
+    await page.getByLabel("Email").fill("desk@example.com");
+    await page.getByLabel("Password").fill("a long desktop password");
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await expect(
+      page.getByRole("navigation", { name: "Workspace" }).getByRole("button", { name: /Team/ }),
+    ).toBeVisible();
+
+    await page
+      .getByRole("navigation", { name: "Workspace" })
+      .getByRole("button", { name: "New draft" })
+      .click();
+    await page.getByRole("textbox", { name: "Title" }).fill("Synced from the desktop");
+    await page.getByRole("textbox", { name: "Title" }).press("Enter");
+    await page.keyboard.type("Hello, server.");
+    await expect(page.getByRole("status").filter({ hasText: /^Saved$/ })).toBeVisible();
+
+    await expect
+      .poll(async () => {
+        const docs = (await fetch(`${base}/api/workspaces/${setup.workspaces[0]!.id}/documents`, {
+          headers: { authorization: `Bearer ${setup.token}` },
+        }).then((r) => r.json())) as Array<{ title: string }>;
+        return docs.map((d) => d.title);
+      })
+      .toContain("Synced from the desktop");
+  } finally {
+    server.kill();
+    rmSync(dataDir, { recursive: true, force: true });
+  }
 });

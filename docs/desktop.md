@@ -15,6 +15,18 @@ The desktop app (`apps/desktop`) is an Electron shell around the same web app. I
 - Provider API keys are encrypted with the OS keychain through Electron `safeStorage`: macOS Keychain, Windows DPAPI, or libsecret/kwallet on Linux. On Linux without a keyring, Electron would fall back to a hard-coded key. The bridge reports "not available" in that case, and the app uses its own encrypted browser store instead.
 - The app never navigates away from `app://vellum`. Web links open in the default browser, and pop-ups and `<webview>` are blocked. All permission requests (camera, microphone, notifications and so on) are denied unless a feature asks for one on purpose.
 
+## Offline first, and syncing with a server
+
+On its own, the desktop app is fully local. Documents, their history, the search index, writing sessions and settings all live on the device, so nothing needs a network.
+
+To sync with a Vellum server, open **Settings → Profile → Sync with a Vellum server** and sign in:
+
+- The app talks to the server from its own origin, so it uses a **bearer token** rather than a cookie. The server returns a token to clients that ask with `x-vellum-token: 1`, and allows cross-origin requests only from `app://vellum` and from `VELLUM_CORS_ORIGINS`. Credentials are never sent cross-origin. The sync socket takes the token as `?access_token=`, which is redacted from logs.
+- **Background sync** keeps every document in your workspaces, and those shared with you, up to date in both directions. It runs at sign-in, when the connection comes back, and every 15 minutes. Offline edits to documents that aren't open go up, and changes made elsewhere come down. Documents created on other devices appear in the library.
+- **Conflicts never ask you anything.** The CRDT merges concurrent edits. If edits from elsewhere are merged into offline work, what this device had just before the merge is saved as a named version, "Your offline edits, before merging", so nothing written offline can be lost.
+
+To go back to working only on this device, choose **Disconnect**.
+
 ## Building
 
 ```sh

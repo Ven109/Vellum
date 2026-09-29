@@ -7,6 +7,17 @@ import type { Mailer } from "../mail.js";
 
 export const SESSION_COOKIE = "vellum_session";
 
+/** The session token from the cookie, an `Authorization: Bearer` header, or a WebSocket's ?access_token. */
+export function sessionToken(req: FastifyRequest): string | undefined {
+  const bearer = /^Bearer\s+(\S+)$/i.exec(req.headers.authorization ?? "")?.[1];
+  if (bearer) return bearer;
+  if (req.url.startsWith("/sync/")) {
+    const q = new URL(req.url, "http://x").searchParams.get("access_token");
+    if (q) return q;
+  }
+  return req.cookies[SESSION_COOKIE];
+}
+
 declare module "fastify" {
   interface FastifyRequest {
     user?: UserRow;
@@ -47,19 +58,25 @@ export function authPlugin(app: FastifyInstance, deps: AuthDeps): void {
   const providers = oauthProviders(deps.env);
   const f = deps.fetchImpl ?? fetch;
 
-  const setSession = (reply: FastifyReply, userId: string) => {
-    reply.setCookie(SESSION_COOKIE, accounts.createSession(userId), {
+  /**
+   * Start a session: a cookie for the web app, and — for apps on another origin such as the desktop app,
+   * which ask with `x-vellum-token: 1` — the token itself, to send as a bearer token.
+   */
+  const setSession = (req: FastifyRequest, reply: FastifyReply, userId: string): { token?: string } => {
+    const token = accounts.createSession(userId);
+    reply.setCookie(SESSION_COOKIE, token, {
       path: "/",
       httpOnly: true,
       sameSite: "lax",
       secure,
       maxAge: 30 * 86_400,
     });
+    return req.headers["x-vellum-token"] === "1" ? { token } : {};
   };
 
-  // Resolve the session on every request.
+  // Resolve the session on every request: cookie, bearer token, or (WebSocket only) ?access_token=.
   app.addHook("onRequest", async (req) => {
-    req.user = accounts.userForSession(req.cookies[SESSION_COOKIE]);
+    req.user = accounts.userForSession(sessionToken(req));
   });
 
   // Browsers can't send application/json cross-site without a CORS preflight, which we never grant:
@@ -123,8 +140,8 @@ export function authPlugin(app: FastifyInstance, deps: AuthDeps): void {
     });
     accounts.setSetting("signups_enabled", String(b.signupsEnabled ?? false));
     accounts.createWorkspace(b.workspaceName || `${user.name}'s workspace`, user.id);
-    setSession(reply, user.id);
-    return me(user);
+    const session = setSession(req, reply, user.id);
+    return { ...me(user), ...session };
   });
 
   app.post<{ Body: { email: string; name: string; password: string; invite?: string } }>(
@@ -140,20 +157,20 @@ export function authPlugin(app: FastifyInstance, deps: AuthDeps): void {
       const user = await accounts.createUser({ email: b.email, name: b.name, password: b.password });
       if (invite && b.invite) accounts.acceptInvite(b.invite, user.id);
       else accounts.createWorkspace(`${user.name}'s workspace`, user.id);
-      setSession(reply, user.id);
-      return me(user);
+      const session = setSession(req, reply, user.id);
+      return { ...me(user), ...session };
     },
   );
 
   app.post<{ Body: { email: string; password: string } }>("/api/auth/login", async (req, reply) => {
     limiter.check(`login:${req.ip}:${String(req.body.email).toLowerCase()}`);
     const user = await accounts.authenticate(req.body.email, req.body.password);
-    setSession(reply, user.id);
-    return me(user);
+    const session = setSession(req, reply, user.id);
+    return { ...me(user), ...session };
   });
 
   app.post("/api/auth/logout", async (req, reply) => {
-    const token = req.cookies[SESSION_COOKIE];
+    const token = sessionToken(req);
     if (token) accounts.deleteSession(token);
     reply.clearCookie(SESSION_COOKIE, { path: "/" });
     return { ok: true };
@@ -183,8 +200,8 @@ export function authPlugin(app: FastifyInstance, deps: AuthDeps): void {
 
   app.post<{ Body: { token: string; password: string } }>("/api/auth/password/reset", async (req, reply) => {
     const user = await accounts.resetPassword(req.body.token, req.body.password);
-    setSession(reply, user.id);
-    return me(user);
+    const session = setSession(req, reply, user.id);
+    return { ...me(user), ...session };
   });
 
   // OAuth --------------------------------------------------------------------------------------------
@@ -229,7 +246,7 @@ export function authPlugin(app: FastifyInstance, deps: AuthDeps): void {
         accounts.createWorkspace(`${user.name}'s workspace`, user.id);
       }
       accounts.linkOAuth(p.id, profile.id, user.id);
-      setSession(reply, user.id);
+      setSession(req, reply, user.id);
       return reply.redirect(`${publicUrl}/`);
     },
   );

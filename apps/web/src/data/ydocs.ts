@@ -22,7 +22,7 @@ export class LiveDoc {
   recovered = false;
   refs = 0;
   private listeners = new Set<() => void>();
-  private mergedListeners = new Set<() => void>();
+  private mergedListeners = new Set<(before: Uint8Array) => void>();
 
   constructor(readonly id: string) {
     this.doc = new Y.Doc({ guid: id });
@@ -39,7 +39,7 @@ export class LiveDoc {
           syncUrl(id, workspaceId),
           {
             change: () => this.emit(),
-            merged: () => this.mergedListeners.forEach((l) => l()),
+            merged: (before) => this.mergedListeners.forEach((l) => l(before)),
           },
           { awareness: this.awareness },
         );
@@ -64,7 +64,7 @@ export class LiveDoc {
     return () => this.listeners.delete(fn);
   }
 
-  onMerged(fn: () => void): () => void {
+  onMerged(fn: (before: Uint8Array) => void): () => void {
     this.mergedListeners.add(fn);
     return () => this.mergedListeners.delete(fn);
   }

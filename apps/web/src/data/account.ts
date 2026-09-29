@@ -1,4 +1,4 @@
-import { serverBaseUrl } from "./server.js";
+import { authHeaders, isCrossOrigin, serverBaseUrl, setSessionToken } from "./server.js";
 
 export type WorkspaceRole = "owner" | "admin" | "member" | "guest";
 
@@ -90,11 +90,14 @@ export async function api<T>(method: string, path: string, body?: unknown): Prom
   if (body === undefined && method !== "GET") body = {};
   const res = await fetch(`${serverBaseUrl()}${path}`, {
     method,
-    credentials: "include",
-    headers: body !== undefined ? { "content-type": "application/json" } : {},
+    credentials: isCrossOrigin() ? "omit" : "include",
+    headers: { ...authHeaders(), ...(body !== undefined ? { "content-type": "application/json" } : {}) },
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
-  const data = (await res.json().catch(() => ({}))) as { code?: string; message?: string };
+  const data = (await res.json().catch(() => ({}))) as { code?: string; message?: string; token?: string };
+  // Apps on another origin (the desktop app) get their session as a token.
+  if (res.ok && typeof data.token === "string") setSessionToken(data.token);
+  if (res.status === 401 && isCrossOrigin()) setSessionToken(null);
   if (!res.ok) {
     throw new ApiError(
       res.status,
@@ -175,6 +178,11 @@ export const account = {
       `/api/share-links/${encodeURIComponent(token)}/open`,
     ),
   shared: () => api<SharedDoc[]>("GET", "/api/shared"),
+  workspaceDocuments: (id: string) =>
+    api<Array<{ id: string; title: string; createdBy: string; createdAt: string }>>(
+      "GET",
+      `/api/workspaces/${id}/documents`,
+    ),
   adminSettings: () => api<{ signupsEnabled: boolean }>("GET", "/api/admin/settings"),
   setAdminSettings: (b: { signupsEnabled: boolean }) =>
     api<{ signupsEnabled: boolean }>("PATCH", "/api/admin/settings", b),

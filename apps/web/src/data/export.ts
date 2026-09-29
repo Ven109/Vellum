@@ -62,8 +62,9 @@ export async function exportWorkspace(onProgress?: (done: number, total: number)
     if (data) {
       type = data[1]!;
       bytes = Uint8Array.from(atob(data[2]!), (c) => c.charCodeAt(0));
-    } else if (src.startsWith("/files/")) {
-      const res = await fetch(`${serverBaseUrl()}${src}`, { credentials: "include" }).catch(() => null);
+    } else if (src.startsWith("/files/") || src.startsWith(`${serverBaseUrl()}/files/`)) {
+      const url = src.startsWith("/") ? `${serverBaseUrl()}${src}` : src;
+      const res = await fetch(url).catch(() => null);
       if (!res?.ok) return null;
       type = res.headers.get("content-type") ?? "";
       bytes = new Uint8Array(await res.arrayBuffer());
@@ -81,7 +82,9 @@ export async function exportWorkspace(onProgress?: (done: number, total: number)
       await waitForSync(live);
       const title = titleOf(live.doc).toString() || meta.title;
       let markdown = docToMarkdown(yXmlFragmentToProseMirrorRootNode(contentOf(live.doc), schema));
-      for (const m of [...markdown.matchAll(/!\[([^\]]*)\]\(((?:data:|\/files\/)[^)\s]+)\)/g)]) {
+      for (const m of [
+        ...markdown.matchAll(/!\[([^\]]*)\]\(((?:data:|\/files\/|https?:\/\/[^)\s]*\/files\/)[^)\s]+)\)/g),
+      ]) {
         const asset = await addAsset(m[2]!);
         if (asset) markdown = markdown.replace(m[2]!, `../${asset}`);
       }

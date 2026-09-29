@@ -57,8 +57,8 @@ function Notices({ live }: { live: LiveDoc }) {
         </span>
       ) : (
         <span>
-          This document was changed elsewhere while you were away. Both sets of changes were merged — nothing
-          was lost.
+          This document was changed elsewhere while you were away. Both sets of changes were merged, and your
+          version from before the merge is saved in History.
         </span>
       )}
       <button

@@ -1,6 +1,6 @@
 import { useApp } from "../state/app.js";
 import { ApiError } from "./account.js";
-import { serverBaseUrl } from "./server.js";
+import { authHeaders, isCrossOrigin, serverBaseUrl } from "./server.js";
 
 export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
@@ -22,14 +22,19 @@ export async function storeImage(file: Blob): Promise<string> {
   if (!useApp.getState().account) return toDataUrl(file);
   const res = await fetch(`${serverBaseUrl()}/api/uploads`, {
     method: "POST",
-    credentials: "include",
-    headers: { "content-type": file.type || "application/octet-stream", "x-vellum-upload": "1" },
+    credentials: isCrossOrigin() ? "omit" : "include",
+    headers: {
+      ...authHeaders(),
+      "content-type": file.type || "application/octet-stream",
+      "x-vellum-upload": "1",
+    },
     body: file,
   });
   const data = (await res.json().catch(() => ({}))) as { url?: string; code?: string; message?: string };
   if (!res.ok || !data.url)
     throw new ApiError(res.status, data.code ?? "upload_failed", data.message ?? "Upload failed.");
-  return data.url;
+  // From another origin (the desktop app) the image needs the server's full address.
+  return isCrossOrigin() ? `${serverBaseUrl()}${data.url}` : data.url;
 }
 
 /** Replace embedded images in Markdown with uploaded ones (used by importers when signed in). */

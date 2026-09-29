@@ -4,6 +4,7 @@ import {
   FilePlus2,
   FolderPlus,
   Library,
+  RefreshCw,
   Search,
   Settings,
   Users,
@@ -14,6 +15,7 @@ import { useState } from "react";
 import { useApp } from "../state/app.js";
 import { CollectionMenu } from "./CollectionMenu.js";
 import { GoalMeter } from "./GoalMeter.js";
+import { useBackgroundSync } from "../data/background-sync.js";
 import { Inbox } from "./Inbox.js";
 import { MOD_KEY, useCommands } from "../state/commands.js";
 import { docPath, navigate, usePathname, useRoute } from "../state/router.js";
@@ -136,8 +138,21 @@ export function Sidebar() {
         <CollectionsList activeId={activeId} />
       </div>
       <SharedWithMe activeId={activeId} />
+      <SyncStatus />
       <GoalMeter />
     </nav>
+  );
+}
+
+/** While the background sync is bringing documents up to date. */
+function SyncStatus() {
+  const { running, done, total } = useBackgroundSync();
+  if (!running || total === 0) return null;
+  return (
+    <p className="vl-sync-status" role="status">
+      <RefreshCw size={12} aria-hidden className="vl-spin" /> Syncing {Math.min(done + 1, total)} of {total}{" "}
+      {total === 1 ? "document" : "documents"}…
+    </p>
   );
 }
 

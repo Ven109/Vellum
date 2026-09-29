@@ -318,6 +318,13 @@ export class AccountService {
         { workspace_id: string } | undefined
     )?.workspace_id;
   }
+  workspaceDocuments(workspaceId: string): Array<{ id: string; createdBy: string; createdAt: string }> {
+    return this.db
+      .prepare(
+        "SELECT id, created_by AS createdBy, created_at AS createdAt FROM documents WHERE workspace_id = ? ORDER BY created_at",
+      )
+      .all(workspaceId) as unknown as Array<{ id: string; createdBy: string; createdAt: string }>;
+  }
   registerDocument(docId: string, workspaceId: string, userId: string): void {
     this.db
       .prepare(

@@ -5,8 +5,11 @@ import * as Y from "yjs";
 export type ConnectionState = "connecting" | "connected" | "disconnected" | "denied";
 
 export interface SyncProviderEvents {
-  /** Remote changes were merged into a document that also had local unsynced edits. */
-  merged?: () => void;
+  /**
+   * Remote changes were merged into a document that also had local unsynced edits. `before` is the
+   * document as it was on this device just before (a Yjs update), so nothing written offline is lost.
+   */
+  merged?: (before: Uint8Array) => void;
   change?: () => void;
   /** The server refused access (4401 signed out, 4403 no access or read-only). */
   denied?: (code: number, reason: string) => void;
@@ -37,6 +40,7 @@ export class DocSyncProvider {
   private retryTimer: ReturnType<typeof setTimeout> | undefined;
   private destroyed = false;
   private hadPendingOnConnect = false;
+  private beforeMerge: Uint8Array | null = null;
   /** Why the server refused the connection, when state is "denied". */
   denial = "";
   private readonly onOnline = () => this.connectSoon(0);
@@ -88,6 +92,7 @@ export class DocSyncProvider {
       this.retry = 0;
       this.state = "connected";
       this.hadPendingOnConnect = this.hasPendingChanges;
+      this.beforeMerge = this.hadPendingOnConnect ? Y.encodeStateAsUpdate(this.doc) : null;
       this.session = new sync.SyncSession(
         this.doc,
         { send: (m) => ws.readyState === ws.OPEN && ws.send(m) },
@@ -106,7 +111,8 @@ export class DocSyncProvider {
           onRemoteUpdate: () => {
             if (this.hadPendingOnConnect) {
               this.hadPendingOnConnect = false;
-              this.events.merged?.();
+              this.events.merged?.(this.beforeMerge ?? new Uint8Array());
+              this.beforeMerge = null;
             }
           },
         },
