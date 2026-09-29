@@ -18,6 +18,9 @@ export default async function globalSetup(config: FullConfig) {
   await page.getByLabel("Password").fill(ADMIN.password);
   await page.getByLabel("Workspace name").fill("Main");
   await page.getByRole("button", { name: "Create admin account" }).click();
+  // A new workspace starts with setup (covered by onboarding.spec.ts); skip it here.
+  await page.waitForURL("**/welcome");
+  await page.getByRole("button", { name: "Skip setup" }).click();
   await page.waitForURL("**/library");
   mkdirSync(dirname(STORAGE), { recursive: true });
   await page.context().storageState({ path: STORAGE });

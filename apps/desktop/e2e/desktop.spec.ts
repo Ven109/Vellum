@@ -33,6 +33,14 @@ test.afterAll(async () => {
 
 test("opens the app from its private origin, works offline, and keeps drafts", async () => {
   expect(page.url()).toMatch(/^app:\/\/vellum\//);
+  // First launch: a new local workspace, so setup is offered. Invites need a server.
+  await expect(page.getByRole("heading", { name: "Name your workspace" })).toBeVisible();
+  await page
+    .getByRole("list", { name: "Setup progress" })
+    .getByRole("button", { name: /Invite people/ })
+    .click();
+  await expect(page.getByText("Inviting people needs a Vellum server")).toBeVisible();
+  await page.getByRole("button", { name: "Skip setup" }).click();
   await expect(page.getByRole("navigation", { name: "Workspace" })).toBeVisible();
   // No server: the desktop app is local-first, no sign-in screen.
   await expect(page.getByRole("heading", { name: "Sign in" })).toHaveCount(0);

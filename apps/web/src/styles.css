@@ -3515,3 +3515,253 @@ del.vl-sug-del,
 .vl-mobile-toolbar-done {
   border-left: 1px solid var(--line) !important;
 }
+
+/* Onboarding ------------------------------------------------------------------------------------------ */
+.vl-onb {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  height: 100%;
+  overflow: hidden;
+}
+
+.vl-onb-rail {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 28px 20px;
+  border-right: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.vl-onb-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 20px;
+  color: var(--accent);
+}
+
+.vl-onb-rail ol {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vl-onb-rail li button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  text-align: left;
+}
+
+.vl-onb-rail li[data-state="current"] button {
+  background: var(--accent-soft);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.vl-onb-rail li[data-state="done"] button {
+  color: var(--ink-2);
+}
+
+.vl-onb-dot {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  font-size: 12px;
+  background: var(--paper);
+}
+
+.vl-onb-rail li[data-state="current"] .vl-onb-dot {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.vl-onb-rail li[data-state="done"] .vl-onb-dot {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.vl-onb-skip {
+  margin-top: auto;
+  align-self: flex-start;
+}
+
+.vl-onb-step {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 56px 32px;
+  overflow: auto;
+}
+
+.vl-onb-step h1 {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 34px;
+  font-weight: 500;
+}
+
+.vl-onb-step .vl-lede {
+  margin: 0;
+}
+
+.vl-onb-count {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.vl-onb-step .vl-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 420px;
+}
+
+.vl-onb-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 10px;
+}
+
+.vl-onb-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 88px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+  color: var(--ink);
+  text-align: left;
+}
+
+.vl-onb-card small {
+  color: var(--muted);
+}
+
+.vl-onb-card[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.vl-onb-card-check {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--paper);
+  color: var(--accent);
+}
+
+.vl-onb-card[aria-pressed="true"] .vl-onb-card-check {
+  border-color: var(--accent);
+}
+
+.vl-onb-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.vl-btn-quiet {
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+}
+
+@media (max-width: 640px) {
+  .vl-onb {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .vl-onb-rail {
+    gap: 12px;
+    padding: 12px 16px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .vl-onb-rail ol {
+    flex-direction: row;
+    overflow-x: auto;
+  }
+
+  .vl-onb-rail li button {
+    white-space: nowrap;
+    min-height: 44px;
+  }
+
+  .vl-onb-rail li:not([data-state="current"]) button {
+    font-size: 0;
+    gap: 0;
+  }
+
+  .vl-onb-skip {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    min-height: 44px;
+  }
+
+  .vl-onb-step {
+    padding: 24px 16px 32px;
+  }
+
+  .vl-onb-step h1 {
+    font-size: 28px;
+  }
+
+  .vl-onb-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .vl-onb-card {
+    min-height: 76px;
+    padding: 12px;
+  }
+
+  .vl-onb-actions {
+    flex-wrap: wrap;
+  }
+
+  .vl-onb-actions .vl-btn {
+    min-height: 44px;
+  }
+}

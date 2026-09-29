@@ -9,10 +9,18 @@ beforeEach(() => {
   useApp.setState({ repo: new IndexedDbRepository(`test-${Math.random()}`), ready: false, documents: [] });
 });
 
+/** The first launch offers setup; skip it to get to the library. */
+async function skipSetup() {
+  await waitFor(() => expect(window.location.pathname).toBe("/welcome"));
+  await act(async () => (await screen.findByRole("button", { name: "Skip setup" })).click());
+  await waitFor(() => expect(window.location.pathname).toBe("/library"));
+}
+
 describe("editor screen", () => {
-  it("seeds a workspace and opens the welcome draft", async () => {
+  it("seeds a workspace, offers setup, and opens the welcome draft", async () => {
     render(<App />);
-    await waitFor(() => expect(window.location.pathname).toBe("/library"));
+    expect(await screen.findByRole("heading", { name: "Name your workspace" })).toBeTruthy();
+    await skipSetup();
     await act(async () =>
       (
         await within(await screen.findByRole("table")).findByRole("link", { name: "Welcome to Vellum" })
@@ -30,7 +38,7 @@ describe("editor screen", () => {
 
   it("creates a new draft from the sidebar", async () => {
     render(<App />);
-    await waitFor(() => expect(window.location.pathname).toBe("/library"));
+    await skipSetup();
     const before = window.location.pathname;
     await act(async () =>
       within(screen.getByRole("navigation", { name: "Workspace" }))

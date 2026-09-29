@@ -1,3 +1,4 @@
+import { useOnboarding } from "../state/onboarding.js";
 import { WorkspaceSettings, createId } from "@vellum/core";
 import type { Collection, DocumentMeta, User, Workspace } from "@vellum/core";
 import type { Me } from "./account.js";
@@ -82,6 +83,7 @@ export async function ensureSeeded(
     };
     await repo.putWorkspace(workspace);
   }
+  if (fresh && !account) useOnboarding.getState().start();
   if (fresh) {
     const essays: Collection = {
       id: createId("col"),

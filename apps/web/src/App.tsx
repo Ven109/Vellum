@@ -28,6 +28,8 @@ import { WorkspaceSettingsPage } from "./screens/WorkspaceSettings.js";
 import { useApp } from "./state/app.js";
 import { useAuth } from "./state/auth.js";
 import { useFocus } from "./state/focus.js";
+import { OnboardingScreen } from "./screens/OnboardingScreen.js";
+import { onboardingPending } from "./state/onboarding.js";
 import { MobileBar, NavBackdrop } from "./components/MobileNav.js";
 import { useMobileNav } from "./state/mobile.js";
 import { ImportDrop } from "./components/ImportDrop.js";
@@ -98,10 +100,13 @@ function Workspace({ leaveAuthPath }: { leaveAuthPath: boolean }) {
   }, []);
 
   useEffect(() => {
-    if (ready && (route.name === "home" || leaveAuthPath)) navigate("/library", { replace: true });
+    // A new workspace starts with setup; everyone else lands in the library.
+    if (ready && (route.name === "home" || leaveAuthPath))
+      navigate(onboardingPending() && route.name === "home" ? "/welcome" : "/library", { replace: true });
   }, [ready, route.name, leaveAuthPath]);
 
   if (!ready) return <Loading />;
+  if (route.name === "screen" && route.path === "/welcome") return <OnboardingScreen />;
 
   return (
     <div

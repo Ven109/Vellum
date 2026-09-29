@@ -20,7 +20,7 @@ function errorText(e: unknown) {
   return e instanceof ApiError ? e.message : "Couldn't reach the server.";
 }
 
-function InviteForm({ workspaceId, onInvited }: { workspaceId: string; onInvited(): void }) {
+export function InviteForm({ workspaceId, onInvited }: { workspaceId: string; onInvited(): void }) {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<WorkspaceRole>("member");
   const [result, setResult] = useState<{ link: string; emailed: boolean; email: string } | null>(null);

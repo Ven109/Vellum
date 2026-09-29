@@ -36,7 +36,12 @@ async function launch(env: Record<string, string> = {}) {
   });
   page = await app.firstWindow();
   await page.waitForLoadState("domcontentloaded");
-  await expect(page.getByRole("navigation", { name: "Workspace" })).toBeVisible();
+  // The first launch offers setup (covered in desktop.spec.ts).
+  const nav = page.getByRole("navigation", { name: "Workspace" });
+  const skip = page.getByRole("button", { name: "Skip setup" });
+  await expect(nav.or(skip)).toBeVisible();
+  if (await skip.isVisible()) await skip.click();
+  await expect(nav).toBeVisible();
 }
 
 test.beforeEach(async () => {
