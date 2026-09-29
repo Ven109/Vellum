@@ -8,6 +8,8 @@ from a pull request.
 1. Install Node.js 22.13+ and enable Corepack (`corepack enable`) so the pinned pnpm version is used.
 2. `pnpm install`
 3. `pnpm dev` starts the web app. See the package READMEs for the server and desktop app.
+4. `pnpm --filter @vellum/site dev` runs the website. Its docs pages are rendered from `docs/` and this
+   file, so documentation changes show up on the site with no extra step.
 
 ## Before you open a pull request
 

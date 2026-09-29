@@ -19,11 +19,13 @@ const STEPS = [
 ] as const;
 
 /** Done: start writing in the welcome draft, or (when skipping setup) land in the library. */
-function finish(where: "write" | "library" = "write") {
+/** "Start writing" opens the welcome draft, or a new draft if it's gone; skipping goes to the library. */
+async function finish(where: "write" | "library" = "write") {
   useOnboarding.getState().finish();
-  const { welcomeDocId, documents } = useApp.getState();
+  if (where === "library") return navigate("/library", { replace: true });
+  const { welcomeDocId, documents, createDocument } = useApp.getState();
   const welcome = welcomeDocId && documents.some((d) => d.id === welcomeDocId) ? welcomeDocId : null;
-  navigate(where === "write" && welcome ? docPath(welcome) : "/library", { replace: true });
+  navigate(docPath(welcome ?? (await createDocument()).id), { replace: true });
 }
 
 function StepFrame(props: {
@@ -39,8 +41,8 @@ function StepFrame(props: {
 }) {
   const { step, goTo } = { step: props.step, goTo: useOnboarding.getState().goTo };
   const last = step === STEPS.length - 1;
-  const next = () => (props.onNext ? props.onNext() : last ? finish() : goTo(step + 1));
-  const skip = () => (last ? finish() : goTo(step + 1));
+  const next = () => (props.onNext ? props.onNext() : last ? void finish() : goTo(step + 1));
+  const skip = () => (last ? void finish() : goTo(step + 1));
   const actions = (
     <div className="vl-onb-actions">
       {step > 0 && (
@@ -270,7 +272,11 @@ export function OnboardingScreen() {
             </li>
           ))}
         </ol>
-        <button type="button" className="vl-btn vl-btn-quiet vl-onb-skip" onClick={() => finish("library")}>
+        <button
+          type="button"
+          className="vl-btn vl-btn-quiet vl-onb-skip"
+          onClick={() => void finish("library")}
+        >
           Skip setup
         </button>
       </aside>
