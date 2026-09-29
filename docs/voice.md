@@ -161,3 +161,37 @@ Each document keeps its voice transcript with it. The transcript lives in the do
   highlights that turn, and clicking a turn highlights its paragraphs. In the editor, hovering one shows
   what you said, and when. A revised paragraph points to the instruction that changed it.
 - None of this goes into Markdown exports. The text stays plain.
+
+## Privacy
+
+Voice raises questions text doesn't, so here are the plain answers. **Settings → Voice mode → Privacy**
+shows them for the providers you've chosen.
+
+- **Vellum never records or stores audio.** Audio goes from your microphone straight to the speech
+  recognition provider you chose, and nowhere else. Only the text of the conversation is kept, with the
+  document. **Delete transcript** on the voice screen removes it; the text written from it stays.
+- **Where audio goes** is shown before you start, and in the voice stack while a session runs:
+  - OpenAI: one clip per turn to `api.openai.com`.
+  - Deepgram: streamed to `api.deepgram.com` while you speak.
+  - whisper.cpp: your own machine.
+
+  Reply voices get the text of replies, never your audio.
+
+- **What providers keep**:
+  - OpenAI doesn't train on API audio. It may keep requests for up to 30 days for abuse monitoring,
+    unless your organisation has zero data retention.
+  - **No retention is the default** where a provider offers it. Every Deepgram session opts out of its
+    model improvement programme (`mip_opt_out`).
+  - ElevenLabs zero-retention mode (`enable_logging=false`) is available as a switch, but only works
+    on its enterprise plans.
+- **Local only**: whisper.cpp for recognition and your device's voices for replies. No audio leaves the
+  machine. A session with a cloud provider selected refuses to start rather than quietly using it.
+  Self-hosters can require this for everyone by setting `VELLUM_VOICE_LOCAL_ONLY=true` on the server.
+- **Mic on is unmistakable.** A red **Mic on** pill is shown and the tab title starts with "● Mic on"
+  whenever the microphone is live. Muting says **Mic muted**.
+- **Sessions end cleanly.** By default the session ends as soon as Vellum isn't the window in front, and
+  it always ends when the tab closes or the app quits. The microphone never stays open behind your back.
+- **Keyboard and screen readers**:
+  - **Ctrl/⌘ Shift Space** starts and ends a session.
+  - The transcript is a live log that screen readers follow, with speakers labelled.
+  - The agent's state ("Listening.", "Vellum is writing.") and any errors are announced.

@@ -10,13 +10,18 @@ import type {
   WriteAction,
 } from "@vellum/voice";
 import { create } from "zustand";
-import { openRecognizer, ttsConfig, useSpeech } from "../data/speech.js";
+import { localOnlyPolicy, openRecognizer, ttsConfig, useSpeech } from "../data/speech.js";
 import { assistantContext } from "../state/assistant.js";
 import { useApp } from "../state/app.js";
 import { useDocSession } from "../state/session.js";
 import { acquireDoc, releaseDoc } from "../data/ydocs.js";
 import type { LiveDoc } from "../data/ydocs.js";
-import { loadConversation, observeConversation, saveConversation } from "../data/transcript.js";
+import {
+  clearConversation,
+  loadConversation,
+  observeConversation,
+  saveConversation,
+} from "../data/transcript.js";
 import { MicrophoneError, openMicrophone, preferredMicrophone } from "./capture.js";
 import type { MicSession } from "./capture.js";
 import { voiceModel } from "./llm.js";
@@ -34,6 +39,9 @@ export interface PendingInstruction {
 export interface VoiceStack {
   microphone: string;
   recognition: string;
+  /** Where your audio goes, in plain words, and whether it stays on this machine. */
+  audioTo: string;
+  audioLocal: boolean;
   model: string | null;
   voice: string;
 }
@@ -46,6 +54,8 @@ interface VoiceSessionState {
   open(docId: string): Promise<void>;
   close(): void;
   focusTurn(turnId: string | null): void;
+  /** Delete the document's transcript, brief and constraints (the text written from them stays). */
+  clearTranscript(): void;
   status: VoiceStatus;
   error: string | null;
   muted: boolean;
@@ -88,6 +98,7 @@ let meter = new LatencyMeter();
 let queue: WriteAction[][] = [];
 let doc: { id: string; live: LiveDoc; unobserve: () => void } | null = null;
 let opening = 0;
+let stopWatchingFocus: (() => void) | null = null;
 let working = false;
 
 export const useVoiceSession = create<VoiceSessionState>((set, get) => {
@@ -200,6 +211,13 @@ export const useVoiceSession = create<VoiceSessionState>((set, get) => {
       set({ focusedTurn: turnId });
     },
 
+    clearTranscript() {
+      if (!doc) return;
+      clearConversation(doc.live.doc);
+      loop = null;
+      set({ turns: [], constraints: [], focusedTurn: null });
+    },
+
     async start(docId) {
       if (get().status !== "idle" && get().status !== "error") return;
       await get().open(docId);
@@ -207,6 +225,15 @@ export const useVoiceSession = create<VoiceSessionState>((set, get) => {
       meter = new LatencyMeter();
       queue = [];
       try {
+        const settings = useSpeech.getState().settings;
+        if (settings.stt && localOnlyPolicy().on && !sttPreset(settings.stt.kind).local) {
+          set({
+            status: "error",
+            error:
+              "Local-only mode is on, so voice needs whisper.cpp on this machine. Choose it in Settings → Voice mode.",
+          });
+          return;
+        }
         recognizer = await openRecognizer({
           onInterim: (t) => set({ interim: t }),
           onError: (e) => set({ error: e.message }),
@@ -294,11 +321,37 @@ export const useVoiceSession = create<VoiceSessionState>((set, get) => {
           },
         });
         const s = useSpeech.getState().settings;
+        const facts = sttPreset(s.stt!.kind).privacy({ ...s.stt!, noRetention: s.privacy.noRetention });
+        // Closing the tab or quitting the app always ends the session cleanly.
+        const onPageHide = () => void get().end();
+        window.addEventListener("pagehide", onPageHide);
+        stopWatchingFocus = () => window.removeEventListener("pagehide", onPageHide);
+        // The microphone never stays open behind your back: leaving the window ends the session.
+        if (s.privacy.endOnBlur) {
+          const leave = () => {
+            set({
+              error:
+                "The session ended because Vellum was no longer in front. Start again when you're ready.",
+            });
+            void get().end();
+          };
+          const onVisibility = () => document.visibilityState === "hidden" && leave();
+          window.addEventListener("blur", leave);
+          document.addEventListener("visibilitychange", onVisibility);
+          const unwatchPage = stopWatchingFocus;
+          stopWatchingFocus = () => {
+            unwatchPage();
+            window.removeEventListener("blur", leave);
+            document.removeEventListener("visibilitychange", onVisibility);
+          };
+        }
         set({
           status: "listening",
           stack: {
             microphone: mic.label,
             recognition: sttPreset(s.stt!.kind).label,
+            audioTo: facts.destination,
+            audioLocal: facts.local,
             model: model ? `${model.label} · ${model.model}` : null,
             voice: ttsPreset(s.tts.kind).label,
           },
@@ -310,6 +363,8 @@ export const useVoiceSession = create<VoiceSessionState>((set, get) => {
     },
 
     async end() {
+      stopWatchingFocus?.();
+      stopWatchingFocus = null;
       writer?.stop();
       speaker?.stop();
       recognizer?.close();

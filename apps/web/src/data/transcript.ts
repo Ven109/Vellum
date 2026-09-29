@@ -59,3 +59,11 @@ export function observeConversation(doc: Y.Doc, fn: () => void): () => void {
   map.observeDeep(handler);
   return () => map.unobserveDeep(handler);
 }
+
+/** Forget the conversation (the text written from it stays). */
+export function clearConversation(doc: Y.Doc) {
+  doc.transact(() => {
+    const map = voiceOf(doc);
+    for (const k of [...map.keys()]) map.delete(k);
+  }, "voice");
+}

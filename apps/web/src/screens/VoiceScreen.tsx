@@ -92,6 +92,7 @@ const timeOf = (at: number) => new Date(at).toLocaleTimeString([], { hour: "2-di
 function Transcript() {
   const turns = useVoiceSession((s) => s.turns);
   const focused = useVoiceSession((s) => s.focusedTurn);
+  const status = useVoiceSession((s) => s.status);
   const interim = useVoiceSession((s) => s.interim);
   const constraints = useVoiceSession((s) => s.constraints);
   const end = useRef<HTMLDivElement>(null);
@@ -111,7 +112,13 @@ function Transcript() {
           ))}
         </ul>
       )}
-      <ol className="vl-turns" role="log" aria-live="polite" aria-label="Transcript">
+      <ol
+        className="vl-turns"
+        role="log"
+        aria-live="polite"
+        aria-relevant="additions"
+        aria-label="Transcript"
+      >
         {turns.length === 0 && (
           <li className="vl-muted vl-turn-empty">
             Say what you're writing and who it's for, or just start talking. Rules like “keep it under 800
@@ -140,6 +147,17 @@ function Transcript() {
           </li>
         ))}
       </ol>
+      {turns.length > 0 && status === "idle" && (
+        <button
+          className="vl-btn vl-btn-quiet vl-delete-transcript"
+          onClick={() => {
+            if (window.confirm("Delete this document's voice transcript? The text written from it stays."))
+              useVoiceSession.getState().clearTranscript();
+          }}
+        >
+          Delete transcript
+        </button>
+      )}
       {interim && (
         <p className="vl-interim" data-testid="interim-transcript" aria-live="off">
           {interim}
@@ -163,6 +181,10 @@ function VoiceStackPanel() {
           <dd>{stack.microphone}</dd>
           <dt>Recognition</dt>
           <dd>{stack.recognition}</dd>
+          <dt>Your audio goes to</dt>
+          <dd data-testid="audio-to" data-local={stack.audioLocal || undefined}>
+            {stack.audioTo}
+          </dd>
           <dt>Writing</dt>
           <dd>{stack.model ?? "No AI provider: writing down what you say"}</dd>
           <dt>Voice</dt>
@@ -220,11 +242,59 @@ function InstructionCard() {
   );
 }
 
+const MOD = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘" : "Ctrl";
+
+/** Announces what the agent is doing for screen readers (the transcript itself is a live log). */
+function Announcer() {
+  const writing = useVoiceSession((s) => s.agentWriting);
+  const status = useVoiceSession((s) => s.status);
+  const error = useVoiceSession((s) => s.error);
+  const [message, setMessage] = useState("");
+  useEffect(() => setMessage(writing ? "Vellum is writing." : ""), [writing]);
+  useEffect(() => {
+    if (status === "listening") setMessage("Listening.");
+    if (status === "idle") setMessage("Microphone off.");
+  }, [status]);
+  useEffect(() => {
+    if (error) setMessage(error);
+  }, [error]);
+  return (
+    <p className="vl-sr-only" aria-live="assertive" data-testid="announcer">
+      {message}
+    </p>
+  );
+}
+
 /** Talk a piece through: the transcript on one side, the document writing itself on the other. */
 export function VoiceScreen({ docId }: { docId: string }) {
   const meta = useApp((s) => s.documents.find((d) => d.id === docId));
   const s = useVoiceSession();
   const running = s.status !== "idle" && s.status !== "error";
+  const micOn = running && s.status !== "starting" && !s.muted;
+
+  // Mic on is unmistakable, even from another tab: the page title says so.
+  useEffect(() => {
+    if (!micOn) return;
+    const before = document.title;
+    document.title = `● Mic on · ${before}`;
+    return () => {
+      document.title = before;
+    };
+  }, [micOn]);
+
+  // Keyboard only: Ctrl/⌘ Shift Space starts and ends a session.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code === "Space" && e.shiftKey && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        const v = useVoiceSession.getState();
+        if (v.status === "idle" || v.status === "error") void v.start(docId);
+        else void v.end();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [docId]);
 
   // The transcript is shown before a session starts and after it ends; leaving the screen ends it.
   useEffect(() => {
@@ -258,6 +328,11 @@ export function VoiceScreen({ docId }: { docId: string }) {
           <ArrowLeft size={14} /> <span className="vl-btn-label">Back to editor</span>
         </a>
         <h1 className="vl-voice-title">{displayTitle(meta.title)}</h1>
+        {running && (
+          <span className="vl-mic-pill" data-on={micOn || undefined} data-testid="mic-pill">
+            <span aria-hidden>●</span> {micOn ? "Mic on" : s.muted ? "Mic muted" : "Mic starting"}
+          </span>
+        )}
         <span className="vl-voice-status" role="status" data-testid="voice-status" data-state={s.status}>
           {running && <Orb />}
           {s.muted && running ? "Muted" : STATUS_TEXT[s.status]}
@@ -273,12 +348,22 @@ export function VoiceScreen({ docId }: { docId: string }) {
               <button className="vl-btn" aria-pressed={s.muted} onClick={() => s.setMuted(!s.muted)}>
                 {s.muted ? <MicOff size={14} /> : <Mic size={14} />} {s.muted ? "Unmute" : "Mute"}
               </button>
-              <button className="vl-btn vl-btn-danger" onClick={() => void s.end()}>
+              <button
+                className="vl-btn vl-btn-danger"
+                onClick={() => void s.end()}
+                aria-keyshortcuts="Control+Shift+Space Meta+Shift+Space"
+                title={`End session (${MOD} Shift Space)`}
+              >
                 <PhoneOff size={14} /> End session
               </button>
             </>
           ) : (
-            <button className="vl-btn vl-btn-primary" onClick={() => void s.start(docId)}>
+            <button
+              className="vl-btn vl-btn-primary"
+              onClick={() => void s.start(docId)}
+              aria-keyshortcuts="Control+Shift+Space Meta+Shift+Space"
+              title={`Start talking (${MOD} Shift Space)`}
+            >
               <Mic size={14} /> Start talking
             </button>
           )}
@@ -346,6 +431,7 @@ export function VoiceScreen({ docId }: { docId: string }) {
         </section>
       </div>
       <InstructionCard />
+      <Announcer />
     </main>
   );
 }

@@ -2,7 +2,7 @@ import { SAMPLE_RATE, encodeWav } from "../pcm.js";
 import { VoiceTransport } from "../transport.js";
 import type { SocketFactory } from "../transport.js";
 import { SpeechError, networkError, speechErrorFrom } from "./types.js";
-import type { SttConfig, SttKind } from "./types.js";
+import type { PrivacyFacts, SttConfig, SttKind } from "./types.js";
 
 export interface SttPreset {
   kind: SttKind;
@@ -17,7 +17,16 @@ export interface SttPreset {
   streaming: boolean;
   /** Audio never leaves your machine. */
   local: boolean;
+  privacy: (config: Pick<SttConfig, "baseUrl" | "noRetention">) => PrivacyFacts;
 }
+
+const hostOf = (url: string) => {
+  try {
+    return new URL(url).host;
+  } catch {
+    return url;
+  }
+};
 
 export const STT_PRESETS: SttPreset[] = [
   {
@@ -31,6 +40,12 @@ export const STT_PRESETS: SttPreset[] = [
     keyUrl: "https://platform.openai.com/api-keys",
     streaming: false,
     local: false,
+    privacy: (c) => ({
+      destination: `OpenAI (${hostOf(c.baseUrl || "https://api.openai.com/v1")}), one clip per turn`,
+      local: false,
+      retention:
+        "OpenAI doesn't train on audio sent through the API. It may keep requests for up to 30 days to detect abuse, unless your organisation has zero data retention with OpenAI.",
+    }),
   },
   {
     kind: "deepgram",
@@ -43,6 +58,14 @@ export const STT_PRESETS: SttPreset[] = [
     keyUrl: "https://console.deepgram.com/",
     streaming: true,
     local: false,
+    privacy: (c) => ({
+      destination: `Deepgram (${hostOf(c.baseUrl || "wss://api.deepgram.com/v1/listen")}), streamed while you speak`,
+      local: false,
+      retention:
+        c.noRetention === false
+          ? "Deepgram may keep your audio to improve its models (you turned off the opt-out)."
+          : "Vellum opts out of Deepgram's model improvement programme for every session, so your audio isn't kept for training. Deepgram may still hold it briefly to run the service.",
+    }),
   },
   {
     kind: "whisper-cpp",
@@ -54,6 +77,11 @@ export const STT_PRESETS: SttPreset[] = [
     defaultModel: "",
     streaming: false,
     local: true,
+    privacy: (c) => ({
+      destination: `Your own machine (whisper.cpp at ${hostOf(c.baseUrl || "http://127.0.0.1:8080")})`,
+      local: true,
+      retention: "Nothing is sent to anyone. whisper.cpp doesn't store audio.",
+    }),
   },
 ];
 
@@ -193,6 +221,8 @@ class DeepgramRecognizer implements Recognizer {
       // Our own VAD decides turn ends; Deepgram shouldn't wait on its own endpointing.
       endpointing: "false",
     });
+    // No retention by default: opt out of Deepgram's Model Improvement Program.
+    if (config.noRetention !== false) params.set("mip_opt_out", "true");
     if (config.language) params.set("language", config.language);
     this.transport = new VoiceTransport({
       url: `${config.baseUrl || p.defaultBaseUrl}?${params}`,

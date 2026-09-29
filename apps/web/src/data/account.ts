@@ -27,6 +27,8 @@ export interface InstanceInfo {
   signupsEnabled: boolean;
   oauth: Array<{ id: string; label: string }>;
   mail: boolean;
+  /** Voice policy set by the server's administrator. */
+  voice?: { localOnly: boolean };
 }
 
 export interface Member extends AccountUser {
