@@ -1,3 +1,5 @@
+import { clearDirty, markDirty } from "./sync-state.js";
+import { LOCAL_ORIGIN } from "./local-persistence.js";
 import { sync } from "@vellum/core";
 import * as awarenessProtocol from "y-protocols/awareness";
 import * as Y from "yjs";
@@ -66,7 +68,12 @@ export class DocSyncProvider {
     this.connect();
   }
 
-  private readonly onLocalUpdate = () => this.events.change?.();
+  private readonly onLocalUpdate = (_update: Uint8Array, origin: unknown) => {
+    // Your own edit (not one from the server or loaded from this device's store): remember the document
+    // has something to send, so background sync can push it even after it's closed.
+    if (origin !== this.session && origin !== LOCAL_ORIGIN) markDirty(this.docId);
+    this.events.change?.();
+  };
 
   /** True once the first exchange with the server has completed on the current connection. */
   get isSynced(): boolean {
@@ -106,6 +113,7 @@ export class DocSyncProvider {
             } catch {
               /* storage full or disabled: acks still work for this session */
             }
+            if (!this.hasPendingChanges) clearDirty(this.docId);
             this.events.change?.();
           },
           onRemoteUpdate: () => {

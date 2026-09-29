@@ -47,6 +47,8 @@ export interface AppState {
 
 const initialising = new WeakMap<Repository, Promise<void>>();
 const writes = new Map<string, Promise<void>>();
+/** Drafts created on this page; the first write of each is queued, so a read may not see it yet. */
+const createdHere = new Set<string>();
 
 export const useApp = create<AppState>((set, get) => {
   async function doInit() {
@@ -102,7 +104,10 @@ export const useApp = create<AppState>((set, get) => {
         repo.listCollections(workspace.id),
         repo.listDocuments(workspace.id),
       ]);
-      set({ workspaces, collections, documents });
+      // A draft created while this was reading may not be in what it read: keep it rather than drop it.
+      const listed = new Set(documents.map((d) => d.id));
+      const pending = get().documents.filter((d) => createdHere.has(d.id) && !listed.has(d.id));
+      set({ workspaces, collections, documents: [...pending, ...documents] });
     },
 
     async createDocument(input = {}) {
@@ -124,6 +129,7 @@ export const useApp = create<AppState>((set, get) => {
       };
       // Show and open the new draft immediately; the write is queued so later edits land after it.
       set({ documents: [doc, ...get().documents] });
+      createdHere.add(doc.id);
       const write = repo.putDocument(doc);
       writes.set(
         doc.id,
@@ -174,6 +180,7 @@ export const useApp = create<AppState>((set, get) => {
 
     async deleteDocuments(ids) {
       const { repo } = get();
+      for (const id of ids) createdHere.delete(id);
       for (const id of ids) {
         await repo.deleteDocument(id);
         void removeFromIndex(id);

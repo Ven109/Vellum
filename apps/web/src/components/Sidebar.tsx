@@ -76,7 +76,7 @@ export function Sidebar() {
   }
 
   return (
-    <nav className="vl-sidebar" aria-label="Workspace">
+    <nav className="vl-sidebar" id="vl-sidebar" aria-label="Workspace">
       <div className="vl-ws vl-ws-row">
         <button
           className="vl-ws-btn"

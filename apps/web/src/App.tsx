@@ -28,6 +28,8 @@ import { WorkspaceSettingsPage } from "./screens/WorkspaceSettings.js";
 import { useApp } from "./state/app.js";
 import { useAuth } from "./state/auth.js";
 import { useFocus } from "./state/focus.js";
+import { MobileBar, NavBackdrop } from "./components/MobileNav.js";
+import { useMobileNav } from "./state/mobile.js";
 import { ImportDrop } from "./components/ImportDrop.js";
 import { useDesktopIntegration } from "./data/desktop.js";
 import { FONT_STACK, MEASURE, usePreferences } from "./state/preferences.js";
@@ -80,6 +82,7 @@ function Workspace({ leaveAuthPath }: { leaveAuthPath: boolean }) {
     if (ready) void usePreferences.getState().load();
   }, [ready]);
   const route = useRoute();
+  const navOpen = useMobileNav((s) => s.open);
 
   useEffect(() => {
     void init();
@@ -104,12 +107,15 @@ function Workspace({ leaveAuthPath }: { leaveAuthPath: boolean }) {
     <div
       className="vl-app"
       data-focus={(focus && route.name === "doc") || undefined}
+      data-nav-open={navOpen || undefined}
       style={
         { "--editor-font": FONT_STACK[prefs.font], "--measure": MEASURE[prefs.measure] } as CSSProperties
       }
     >
       <CoreCommands />
+      {route.name !== "doc" && <MobileBar />}
       <Sidebar />
+      <NavBackdrop />
       <Screen />
       <CommandPalette />
       <ImportDrop />
