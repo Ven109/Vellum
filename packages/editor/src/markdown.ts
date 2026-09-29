@@ -134,6 +134,9 @@ export const markdownSerializer = new MarkdownSerializer(
     strike: { open: "~~", close: "~~", mixable: true, expelEnclosingWhitespace: true },
     // Markdown has no underline; keep the text, drop the mark.
     underline: { open: "", close: "" },
+    // Pending suggestions are review state, not content; their text is kept as-is.
+    suggestionInsert: { open: "", close: "" },
+    suggestionDelete: { open: "", close: "" },
     link: {
       open: "[",
       close(_state, mark) {
