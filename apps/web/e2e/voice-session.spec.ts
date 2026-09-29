@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
-import { addAnthropicKey, mockAnthropic, newDraft } from "./fixtures.js";
+import { addAnthropicKey, explainFailures, mockAnthropic, newDraft } from "./fixtures.js";
 import { fakeMicLaunch, writeSpeechWav } from "./voice-audio.js";
 
 const wav = writeSpeechWav(
@@ -15,6 +15,7 @@ const wav = writeSpeechWav(
 );
 
 test.use({ launchOptions: fakeMicLaunch(wav), permissions: ["microphone"] });
+explainFailures();
 
 /** OpenAI speech recognition that "hears" these utterances, one per turn. */
 async function scriptedRecognition(page: Page, utterances: string[]) {

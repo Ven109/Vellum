@@ -1,3 +1,4 @@
+import { test } from "@playwright/test";
 import type { Page, Route } from "@playwright/test";
 
 export function anthropicSse(text: string, opts: { input?: number; output?: number } = {}): string {
@@ -137,4 +138,35 @@ export async function newDraft(page: Page) {
   await page.waitForFunction(
     () => (document.querySelector(".vl-title") as HTMLTextAreaElement | null)?.value === "",
   );
+}
+
+/**
+ * When a test fails, print the page's errors and visible text, so a CI failure can be read from the
+ * job log without the trace.
+ */
+export function explainFailures() {
+  const errors = new WeakMap<Page, string[]>();
+  test.beforeEach(({ page }) => {
+    const seen: string[] = [];
+    errors.set(page, seen);
+    page.on("pageerror", (e) => seen.push(`page error: ${e.stack ?? e.message}`));
+    page.on("console", (m) => {
+      if (m.type() === "error") seen.push(`console error: ${m.text()}`);
+    });
+  });
+  test.afterEach(async ({ page }, info) => {
+    if (info.status === info.expectedStatus) return;
+    const text = await page
+      .locator("body")
+      .innerText({ timeout: 2000 })
+      .catch(() => "(no text)");
+    console.log(
+      [
+        `--- ${info.title} (${page.url()})`,
+        ...(errors.get(page) ?? []),
+        "--- page text:",
+        text.slice(0, 2000),
+      ].join("\n"),
+    );
+  });
 }
