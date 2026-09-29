@@ -1,11 +1,12 @@
 import { meterValue } from "@vellum/voice";
 import type { Constraint } from "@vellum/voice";
-import { ArrowLeft, Hand, Mic, MicOff, Pause, Play, PhoneOff, X } from "lucide-react";
+import { ArrowLeft, Hand, Headphones, Mic, MicOff, Pause, Play, PhoneOff, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { displayTitle } from "../components/Sidebar.js";
 import { useApp } from "../state/app.js";
 import { docPath, navigate } from "../state/router.js";
 import { useVoiceSession } from "../voice/session.js";
+import { handsFreeEnabled } from "../data/speech.js";
 import { DocumentPane } from "./EditorScreen.js";
 
 const STATUS_TEXT = {
@@ -298,6 +299,7 @@ export function VoiceScreen({ docId }: { docId: string }) {
 
   // The transcript is shown before a session starts and after it ends; leaving the screen ends it.
   useEffect(() => {
+    useVoiceSession.setState({ handsFree: handsFreeEnabled() });
     void useVoiceSession.getState().open(docId);
     return () => {
       const session = useVoiceSession.getState();
@@ -343,6 +345,14 @@ export function VoiceScreen({ docId }: { docId: string }) {
           </span>
         )}
         <div className="vl-voice-controls">
+          <button
+            className="vl-btn"
+            aria-pressed={s.handsFree}
+            title="Hands-free: keeps going with the screen off, and reads new writing aloud"
+            onClick={() => s.setHandsFree(!s.handsFree)}
+          >
+            <Headphones size={14} /> Hands-free
+          </button>
           {running ? (
             <>
               <button className="vl-btn" aria-pressed={s.muted} onClick={() => s.setMuted(!s.muted)}>
@@ -383,6 +393,12 @@ export function VoiceScreen({ docId }: { docId: string }) {
               Open voice settings
             </a>
           )}
+        </p>
+      )}
+      {s.micPaused && running && (
+        <p className="vl-notice" role="status" data-testid="mic-paused">
+          Your device paused the microphone (a call, or the screen turning off). It picks up again when it
+          can.
         </p>
       )}
       <div className="vl-voice-body">

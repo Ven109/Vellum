@@ -10,7 +10,8 @@ import type {
   WriteAction,
 } from "@vellum/voice";
 import { create } from "zustand";
-import { localOnlyPolicy, openRecognizer, ttsConfig, useSpeech } from "../data/speech.js";
+import { handsFreeEnabled, localOnlyPolicy, openRecognizer, ttsConfig, useSpeech } from "../data/speech.js";
+import { startHandsFree } from "./handsfree.js";
 import { assistantContext } from "../state/assistant.js";
 import { useApp } from "../state/app.js";
 import { useDocSession } from "../state/session.js";
@@ -48,6 +49,12 @@ export interface VoiceStack {
 
 interface VoiceSessionState {
   docId: string | null;
+  /** Hands-free: the session carries on with the screen off. */
+  handsFree: boolean;
+  screenOn: boolean;
+  /** The system paused the microphone (a call, or the OS suspending the page). */
+  micPaused: boolean;
+  setHandsFree(on: boolean): void;
   /** The turn a clicked paragraph came from (highlighted in the transcript). */
   focusedTurn: string | null;
   /** Load a document's transcript (the screen shows it before and after a session). */
@@ -102,6 +109,49 @@ let stopWatchingFocus: (() => void) | null = null;
 let working = false;
 
 export const useVoiceSession = create<VoiceSessionState>((set, get) => {
+  /**
+   * The microphone never stays open behind your back: normally leaving the window ends the session. In a
+   * hands-free session it keeps going with the screen off (wake lock, lock-screen controls), and new
+   * writing is read aloud while you can't see it. Closing the tab or quitting always ends it.
+   */
+  function watchFocus() {
+    stopWatchingFocus?.();
+    const onPageHide = () => void get().end();
+    window.addEventListener("pagehide", onPageHide);
+    const stops: Array<() => void> = [() => window.removeEventListener("pagehide", onPageHide)];
+    const handsFree = handsFreeEnabled();
+    set({ handsFree, screenOn: document.visibilityState === "visible" });
+    if (handsFree) {
+      stops.push(
+        startHandsFree({
+          title: useApp.getState().documents.find((d) => d.id === get().docId)?.title || "Vellum",
+          onMute: () => get().setMuted(true),
+          onUnmute: () => get().setMuted(false),
+          onEnd: () => void get().end(),
+          onScreen: (on) => {
+            set({ screenOn: on });
+            if (on) void mic?.resume();
+          },
+        }),
+      );
+    } else if (useSpeech.getState().settings.privacy.endOnBlur) {
+      const leave = () => {
+        set({
+          error: "The session ended because Vellum was no longer in front. Start again when you're ready.",
+        });
+        void get().end();
+      };
+      const onVisibility = () => document.visibilityState === "hidden" && leave();
+      window.addEventListener("blur", leave);
+      document.addEventListener("visibilitychange", onVisibility);
+      stops.push(() => {
+        window.removeEventListener("blur", leave);
+        document.removeEventListener("visibilitychange", onVisibility);
+      });
+    }
+    stopWatchingFocus = () => stops.forEach((f) => f());
+  }
+
   function syncLoop() {
     if (!loop) return;
     set({ turns: loop.state.turns, constraints: loop.state.constraints });
@@ -159,6 +209,9 @@ export const useVoiceSession = create<VoiceSessionState>((set, get) => {
 
   return {
     docId: null,
+    handsFree: false,
+    screenOn: true,
+    micPaused: false,
     focusedTurn: null,
     status: "idle",
     error: null,
@@ -205,6 +258,13 @@ export const useVoiceSession = create<VoiceSessionState>((set, get) => {
       doc = null;
       loop = null;
       set({ docId: null, turns: [], constraints: [], focusedTurn: null });
+    },
+
+    setHandsFree(on) {
+      const { settings, update } = useSpeech.getState();
+      update({ privacy: { ...settings.privacy, handsFree: on ? "on" : "off" } });
+      if (get().status !== "idle" && get().status !== "error") watchFocus();
+      else set({ handsFree: on });
     },
 
     focusTurn(turnId) {
@@ -277,6 +337,12 @@ export const useVoiceSession = create<VoiceSessionState>((set, get) => {
             };
           },
         });
+        writer.onWritten = (text) => {
+          // Hands-free with the screen off: you can't see the draft, so hear it.
+          const { privacy } = useSpeech.getState().settings;
+          if (get().handsFree && !get().screenOn && privacy.readBackWhenScreenOff)
+            void speaker?.speak(text).catch(() => undefined);
+        };
         writer.onSentenceDone = () => {
           // The sentence finished: the waiting instruction goes next.
           const p = get().pending;
@@ -315,6 +381,8 @@ export const useVoiceSession = create<VoiceSessionState>((set, get) => {
               },
             );
           },
+          onPaused: () => set({ micPaused: true }),
+          onResumed: () => set({ micPaused: false }),
           onEnded: () => {
             set({ error: "The microphone was disconnected." });
             void get().end();
@@ -322,29 +390,7 @@ export const useVoiceSession = create<VoiceSessionState>((set, get) => {
         });
         const s = useSpeech.getState().settings;
         const facts = sttPreset(s.stt!.kind).privacy({ ...s.stt!, noRetention: s.privacy.noRetention });
-        // Closing the tab or quitting the app always ends the session cleanly.
-        const onPageHide = () => void get().end();
-        window.addEventListener("pagehide", onPageHide);
-        stopWatchingFocus = () => window.removeEventListener("pagehide", onPageHide);
-        // The microphone never stays open behind your back: leaving the window ends the session.
-        if (s.privacy.endOnBlur) {
-          const leave = () => {
-            set({
-              error:
-                "The session ended because Vellum was no longer in front. Start again when you're ready.",
-            });
-            void get().end();
-          };
-          const onVisibility = () => document.visibilityState === "hidden" && leave();
-          window.addEventListener("blur", leave);
-          document.addEventListener("visibilitychange", onVisibility);
-          const unwatchPage = stopWatchingFocus;
-          stopWatchingFocus = () => {
-            unwatchPage();
-            window.removeEventListener("blur", leave);
-            document.removeEventListener("visibilitychange", onVisibility);
-          };
-        }
+        watchFocus();
         set({
           status: "listening",
           stack: {

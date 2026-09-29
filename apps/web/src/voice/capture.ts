@@ -51,6 +51,9 @@ export interface MicOptions {
   onSpeechEnd?: (turn: TurnEnd) => void;
   /** The device went away (unplugged) or the browser stopped the track. */
   onEnded?: () => void;
+  /** The system paused the microphone (e.g. a phone call, or the OS suspending a background tab). */
+  onPaused?: () => void;
+  onResumed?: () => void;
 }
 
 export interface MicSession {
@@ -60,6 +63,8 @@ export interface MicSession {
   stop(): Promise<void>;
   /** Pause sending frames (the mic stays open, the level meter keeps moving). */
   setMuted(muted: boolean): void;
+  /** Wake audio processing after the system suspended it (screen back on). */
+  resume(): Promise<void>;
 }
 
 /**
@@ -123,6 +128,8 @@ export async function openMicrophone(options: MicOptions = {}): Promise<MicSessi
     }
   };
   track.addEventListener("ended", () => options.onEnded?.());
+  track.addEventListener("mute", () => options.onPaused?.());
+  track.addEventListener("unmute", () => options.onResumed?.());
 
   return {
     label: track.label || "Microphone",
@@ -132,6 +139,9 @@ export async function openMicrophone(options: MicOptions = {}): Promise<MicSessi
       muted = m;
       track.enabled = !m;
       if (m) vad.reset();
+    },
+    async resume() {
+      if (ctx.state === "suspended") await ctx.resume().catch(() => undefined);
     },
     async stop() {
       node.port.onmessage = null;

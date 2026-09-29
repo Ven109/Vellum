@@ -195,3 +195,19 @@ shows them for the providers you've chosen.
   - **Ctrl/⌘ Shift Space** starts and ends a session.
   - The transcript is a live log that screen readers follow, with speakers labelled.
   - The agent's state ("Listening.", "Vellum is writing.") and any errors are announced.
+
+## Hands-free
+
+Hands-free sessions are for talking while walking, with the phone in your pocket.
+
+- They're **on automatically on phones and tablets**. Settings → Voice mode can set them to Always or
+  Never, and **Hands-free** on the voice screen switches them for the current session.
+- **The session keeps going with the screen off, or with Vellum in the background.** A wake lock keeps
+  the screen on while it's showing. Lock-screen and notification controls (Media Session) let you
+  **mute**, **unmute** and **end** the session without unlocking.
+- **With the screen off, new writing is read aloud** as it lands, because you can't see it. Talk over it
+  to interrupt. With the screen on, only short replies are spoken. See
+  [ADR 0003](adr/0003-voice-read-back.md).
+- If the system pauses the microphone (a phone call, or the OS suspending the page), the session says
+  so and picks up again when it can. Audio processing wakes up when the screen comes back on.
+- Closing the tab or quitting the app still ends the session.
