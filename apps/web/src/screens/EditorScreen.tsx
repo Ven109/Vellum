@@ -136,7 +136,15 @@ function TitleField({ live, docId, meta }: { live: LiveDoc; docId: string; meta?
   );
 }
 
-function DocumentPane({ docId, primary, meta }: { docId: string; primary: boolean; meta?: DocumentMeta }) {
+export function DocumentPane({
+  docId,
+  primary,
+  meta,
+}: {
+  docId: string;
+  primary: boolean;
+  meta?: DocumentMeta;
+}) {
   const welcomeId = useApp((s) => s.welcomeDocId);
   const live = useLiveDoc(docId, primary);
   return (

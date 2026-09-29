@@ -97,3 +97,22 @@ of the same kind: "under 600 words" replaces "under 800 words".
 Sorting uses your own AI provider when one is set up. If it takes longer than 2.5 s, fails, or returns
 something unusable, local rules take over. Those rules also run on their own when there's no provider.
 Either way, constraints are read locally, so a chip always shows the same thing for the same words.
+
+## A voice session
+
+Open a document and choose **Voice** in the top bar, or run "Talk it through" from the command palette.
+Then choose **Start talking**. The screen has three parts:
+
+- **Voice stack**: the microphone, the speech recognition provider, the writing model and the voice, and
+  how quickly Vellum reacted to your turns (95th percentile, against the 300 ms budget).
+- **Conversation**: your turns and Vellum's replies, each labelled with what it was taken as (for the
+  page, constraint, instruction, brief, thinking aloud). A line shows the words being heard while you
+  talk. Constraints appear as chips at the top: click one to correct it, or × to drop it.
+- **The document**, writing itself. **Agent writing** shows while text is going in.
+  - **Pause writing** stops writing but keeps listening. **Resume writing** carries on.
+  - **Take over** stops writing and puts your cursor at the end, so you can type.
+
+If you give an instruction while the agent is writing, a card asks what to do: **Apply now**,
+**Queue it** or **Ignore**.
+
+Without an AI provider, voice mode still writes down what you say, but it can't draft or revise.
