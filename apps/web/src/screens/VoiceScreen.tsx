@@ -92,7 +92,10 @@ function Transcript() {
   const interim = useVoiceSession((s) => s.interim);
   const constraints = useVoiceSession((s) => s.constraints);
   const end = useRef<HTMLDivElement>(null);
-  useEffect(() => end.current?.scrollIntoView({ block: "end" }), [turns.length, interim]);
+  // Braces matter: newer browsers return a promise from scrollIntoView, which React would take as cleanup.
+  useEffect(() => {
+    end.current?.scrollIntoView({ block: "end" });
+  }, [turns.length, interim]);
   return (
     <section className="vl-voice-transcript" aria-label="Conversation">
       {constraints.length > 0 && (
