@@ -5,6 +5,7 @@ import { CoreCommands } from "./components/CoreCommands.js";
 import { Sidebar } from "./components/Sidebar.js";
 import { EditorScreen } from "./screens/EditorScreen.js";
 import { HistoryScreen } from "./screens/HistoryScreen.js";
+import { InsightsScreen } from "./screens/InsightsScreen.js";
 import { LibraryScreen } from "./screens/LibraryScreen.js";
 import { ProviderSettings } from "./screens/ProviderSettings.js";
 import { VoiceSettingsPage } from "./screens/VoiceSettings.js";
@@ -103,6 +104,7 @@ function Screen() {
   if (route.name === "screen" && route.path === "/settings/ai") return <ProviderSettings />;
   if (route.name === "screen" && route.path === "/settings/voice") return <VoiceSettingsPage />;
   if (route.name === "screen" && route.path === "/settings/workspace") return <WorkspaceSettingsPage />;
+  if (route.name === "screen" && route.path === "/insights") return <InsightsScreen />;
   return (
     <main className="vl-main vl-empty">
       <p>Page not found.</p>

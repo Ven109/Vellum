@@ -16,6 +16,8 @@ interface WritingState {
   streak: number;
   metToday: boolean;
   loaded: boolean;
+  /** Increments whenever a session is saved, so views can refresh. */
+  saved: number;
   load(): Promise<void>;
   setGoal(words: number): Promise<void>;
   saveSession(s: WritingSession): Promise<void>;
@@ -34,6 +36,7 @@ export const useWriting = create<WritingState>((set, get) => ({
   streak: 0,
   metToday: false,
   loaded: false,
+  saved: 0,
 
   async load() {
     const { repo, workspace } = useApp.getState();
@@ -67,7 +70,7 @@ export const useWriting = create<WritingState>((set, get) => ({
 
   async saveSession(s) {
     await useApp.getState().repo.putSession(s);
-    set({ liveWords: 0 });
+    set({ liveWords: 0, saved: get().saved + 1 });
     await get().load();
   },
 }));
