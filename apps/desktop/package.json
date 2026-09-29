@@ -5,10 +5,27 @@
   "license": "AGPL-3.0-or-later",
   "type": "module",
   "scripts": {
-    "typecheck": "tsc --noEmit -p ."
+    "build": "node scripts/build.mjs",
+    "start": "node scripts/build.mjs && electron .",
+    "package": "node scripts/build.mjs && node scripts/package.mjs",
+    "release": "node scripts/build.mjs && node scripts/package.mjs --release",
+    "budget": "node scripts/budget.mjs",
+    "typecheck": "tsc --noEmit -p .",
+    "test:desktop": "playwright test"
   },
-  "dependencies": {
-    "@vellum/core": "workspace:*",
-    "@vellum/editor": "workspace:*"
-  }
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/node": "^22.20.4",
+    "electron": "44.4.5",
+    "electron-builder": "26.15.3",
+    "esbuild": "^0.28.2"
+  },
+  "description": "Vellum for macOS, Windows and Linux.",
+  "author": {
+    "name": "Vellum contributors",
+    "email": "noreply@vellum.app"
+  },
+  "homepage": "https://github.com/Ven109/Vellum",
+  "main": "dist/main.cjs",
+  "desktopName": "vellum.desktop"
 }

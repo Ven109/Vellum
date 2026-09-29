@@ -46,7 +46,7 @@ export class DesktopKeyVault implements KeyVault {
 
   constructor(private readonly bridge: DesktopSecretsBridge) {}
 
-  async save(providerId: string, key: string) {
+  async save(providerId: string, key: string): Promise<KeyInfo> {
     const info: KeyInfo = { last4: last4(key), savedAt: new Date().toISOString() };
     await this.bridge.set(`provider-key:${providerId}`, key.trim());
     await this.bridge.set(`provider-key-info:${providerId}`, JSON.stringify(info));
@@ -157,12 +157,49 @@ export class BrowserKeyVault implements KeyVault {
   }
 }
 
+/**
+ * On the desktop app, keys go to the OS keychain when there is one; otherwise (for example Linux without
+ * a keyring) they fall back to the encrypted browser store rather than being stored in the clear.
+ */
+class DesktopOrBrowserVault implements KeyVault {
+  private chosen: Promise<KeyVault>;
+  private current: KeyVault;
+
+  constructor(bridge: DesktopSecretsBridge, userId: string) {
+    const desktop = new DesktopKeyVault(bridge);
+    this.current = desktop;
+    this.chosen = bridge.isEncryptionAvailable().then(
+      (ok) => (this.current = ok ? desktop : new BrowserKeyVault(userId)),
+      () => (this.current = new BrowserKeyVault(userId)),
+    );
+  }
+
+  get kind() {
+    return this.current.kind;
+  }
+  get description() {
+    return this.current.description;
+  }
+  async save(providerId: string, key: string) {
+    return (await this.chosen).save(providerId, key);
+  }
+  async reveal(providerId: string) {
+    return (await this.chosen).reveal(providerId);
+  }
+  async info(providerId: string) {
+    return (await this.chosen).info(providerId);
+  }
+  async remove(providerId: string) {
+    return (await this.chosen).remove(providerId);
+  }
+}
+
 let vault: KeyVault | null = null;
 
 export function getKeyVault(userId: string): KeyVault {
   if (!vault) {
     const bridge = typeof window !== "undefined" ? window.vellumDesktop?.secrets : undefined;
-    vault = bridge ? new DesktopKeyVault(bridge) : new BrowserKeyVault(userId);
+    vault = bridge ? new DesktopOrBrowserVault(bridge, userId) : new BrowserKeyVault(userId);
   }
   return vault;
 }
