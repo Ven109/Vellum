@@ -97,8 +97,9 @@ test("export the workspace as portable files and import it back", async ({ page 
   await page
     .getByLabel("Files to import")
     .setInputFiles({ name: "backup.zip", mimeType: "application/zip", buffer: readFileSync(path) });
-  // Documents from other tests on the shared server are in the workspace too; check ours made it.
-  await expect(page.getByTestId("import-review")).toContainText("Backed up");
+  // Documents from other tests on the shared server are in the workspace too (the review only names the
+  // first few), so check ours made it once imported.
+  await expect(page.getByTestId("import-review")).toContainText(/Ready to import \d+ drafts/);
   await page.getByTestId("import-review").getByRole("button", { name: "Import" }).click();
   await expect(page.getByText(/Imported \d+ drafts\./)).toBeVisible();
   await page.goto("/library");

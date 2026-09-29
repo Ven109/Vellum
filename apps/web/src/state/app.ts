@@ -43,6 +43,8 @@ export interface AppState {
   /** Bring local workspace records in line with the server account (after joining or creating one). */
   syncAccount(me: Me): Promise<void>;
   updateWorkspaceSettings(patch: Partial<Workspace["settings"]>): Promise<void>;
+  /** Rename the current workspace on this device (the server copy is renamed through the account API). */
+  renameWorkspace(name: string): Promise<void>;
 }
 
 const initialising = new WeakMap<Repository, Promise<void>>();
@@ -243,6 +245,14 @@ export const useApp = create<AppState>((set, get) => {
       // Update the UI first, then persist.
       set({ workspace: next, workspaces: get().workspaces.map((w) => (w.id === next.id ? next : w)) });
       await repo.putWorkspace(next);
+    },
+
+    async renameWorkspace(name) {
+      const current = get().workspace;
+      if (!current || !name.trim()) return;
+      const next: Workspace = { ...current, name: name.trim() };
+      set({ workspace: next, workspaces: get().workspaces.map((w) => (w.id === next.id ? next : w)) });
+      await get().repo.putWorkspace(next);
     },
 
     async syncAccount(me) {

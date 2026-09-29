@@ -1,3 +1,4 @@
+import { useOnboarding } from "../state/onboarding.js";
 import { useEffect, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { ApiError, account } from "../data/account.js";
@@ -116,7 +117,8 @@ export function SetupScreen() {
         className="vl-auth-form"
         onSubmit={run(async () => {
           await signedIn(await account.setup({ name, email, password, workspaceName, signupsEnabled }));
-          navigate("/library", { replace: true });
+          useOnboarding.getState().start();
+          navigate("/welcome", { replace: true });
         })}
       >
         <Field label="Your name" value={name} onChange={setName} autoComplete="name" autoFocus />
@@ -266,7 +268,9 @@ export function SignUpScreen({ invite }: { invite?: string }) {
       className="vl-auth-form"
       onSubmit={run(async () => {
         await signedIn(await account.signup({ name, email, password, ...(invite ? { invite } : {}) }));
-        navigate("/library", { replace: true });
+        // Signing up without an invite creates your own workspace: set it up.
+        if (!invite) useOnboarding.getState().start();
+        navigate(invite ? "/library" : "/welcome", { replace: true });
       })}
     >
       <Field label="Your name" value={name} onChange={setName} autoComplete="name" autoFocus />

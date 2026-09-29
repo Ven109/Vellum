@@ -30,7 +30,7 @@ function hostOf(url: string): string {
   }
 }
 
-function AddProvider({ onDone }: { onDone: () => void }) {
+export function AddProvider({ onDone }: { onDone: () => void }) {
   const save = useProviders((s) => s.save);
   const [kind, setKind] = useState<ProviderKind>("anthropic");
   const preset = PROVIDER_PRESETS.find((p) => p.kind === kind)!;

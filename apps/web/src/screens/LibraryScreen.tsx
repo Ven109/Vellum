@@ -1,3 +1,4 @@
+import { ResumeOnboarding } from "./OnboardingScreen.js";
 import {
   STATUS_LABEL,
   STATUS_ORDER,
@@ -111,6 +112,7 @@ export function LibraryScreen() {
 
   return (
     <main className="vl-main vl-library">
+      <ResumeOnboarding />
       <header className="vl-page-header">
         <h1>Library</h1>
         <button
