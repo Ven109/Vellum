@@ -130,3 +130,20 @@ anywhere else in it at the same time.
   changes are saved as a checkpoint. Afterwards, the agent's writing is saved as an **Assistant edit**
   that names the model and who asked for it. Agent writing never ends up in your own autosaves, and
   never in your undo history.
+
+## Interrupting
+
+You can cut in at any time, and you'll be obeyed.
+
+- **Talking over the agent** stops its voice at once. Writing pauses at the end of the word it's on,
+  never mid-word. Whatever the model sends meanwhile is held.
+- If what you said was just talk or thinking aloud, writing picks up where it paused.
+- **A new instruction while it's writing** brings up a card: **Apply now**, **Queue it** or **Ignore**.
+  - If you don't choose, the instruction is applied **after the current sentence**: the sentence is
+    finished, the rest of that draft is dropped, and your instruction runs. A thought is never left
+    half-written.
+  - **Apply now** stops at the next word boundary and runs your instruction.
+  - **Queue it** lets the current writing finish first.
+  - **Ignore** carries on as if you hadn't said it.
+- **Pause writing** and **Take over** hand control back without ending the session. The agent keeps
+  listening.
