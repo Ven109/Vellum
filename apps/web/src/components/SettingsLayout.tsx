@@ -10,6 +10,7 @@ export const SETTINGS_SECTIONS: Array<{
   { path: "/settings/account", label: "Profile", group: "Account" },
   { path: "/settings/editor", label: "Editor", group: "Account" },
   { path: "/settings/shortcuts", label: "Keyboard shortcuts", group: "Account" },
+  { path: "/settings/voice-mode", label: "Voice mode", group: "Account" },
   { path: "/settings/updates", label: "App updates", group: "Account", desktopOnly: true },
   { path: "/settings/workspace", label: "Workspace and people", group: "Workspace" },
   { path: "/settings/voice", label: "Voice and style", group: "Workspace" },

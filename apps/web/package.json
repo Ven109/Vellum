@@ -21,6 +21,7 @@
     "@vellum/ai": "workspace:*",
     "@vellum/core": "workspace:*",
     "@vellum/editor": "workspace:*",
+    "@vellum/voice": "workspace:*",
     "fflate": "^0.8.3",
     "idb": "^8.0.3",
     "lucide-react": "^1.48.0",

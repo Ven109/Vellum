@@ -23,6 +23,7 @@ export const DOCS: DocPage[] = [
   { slug: "accounts", file: "docs/accounts.md", group: "Run Vellum" },
   { slug: "desktop", file: "docs/desktop.md", group: "Run Vellum" },
   { slug: "ai-providers", file: "docs/ai-providers.md", group: "Write with AI" },
+  { slug: "voice", file: "docs/voice.md", group: "Write with AI" },
   { slug: "document-format", file: "docs/data-model.md", group: "Your data", title: "Document format" },
   { slug: "contributing", file: "CONTRIBUTING.md", group: "Contribute" },
   { slug: "releasing", file: "docs/releasing.md", group: "Contribute" },
