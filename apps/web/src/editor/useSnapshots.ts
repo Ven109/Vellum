@@ -1,7 +1,7 @@
 import type { Editor } from "@tiptap/core";
 import { yXmlFragmentToProseMirrorRootNode, ySyncPluginKey } from "@tiptap/y-tiptap";
 import * as Y from "yjs";
-import { docToMarkdown } from "@vellum/editor";
+import { AGENT_META, docToMarkdown } from "@vellum/editor";
 import { useEffect } from "react";
 import { recordVersion } from "../data/versions.js";
 import { contentOf } from "../data/ydocs.js";
@@ -51,6 +51,7 @@ export function useSnapshots(editor: Editor | null, docId: string, live: LiveDoc
       if (!transaction.docChanged) return;
       const meta = transaction.getMeta(ySyncPluginKey) as { isChangeOrigin?: boolean } | undefined;
       if (meta?.isChangeOrigin) return; // someone else's edit, or the initial load
+      if (transaction.getMeta(AGENT_META)) return; // the voice agent's writing gets its own versions
       dirty = true;
     };
     editor.on("update", onUpdate);

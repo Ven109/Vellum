@@ -4143,3 +4143,10 @@ del.vl-sug-del,
     display: none;
   }
 }
+
+/* Text the voice agent is writing right now */
+.vl-agent-text {
+  background: var(--ai);
+  border-radius: 2px;
+  box-decoration-break: clone;
+}

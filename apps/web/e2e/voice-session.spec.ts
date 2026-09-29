@@ -124,6 +124,10 @@ test("talk a piece through: brief, constraint and thinking aloud, with the draft
   await expect(page.getByTestId("voice-status")).toHaveText("Not listening");
   await page.getByRole("link", { name: "Back to editor" }).click();
   await expect(page.locator(".vl-prose")).toContainText("quiet tools live");
+  // Nothing is left marked as in flight, and the agent's writing is in history under its own name.
+  await expect(page.locator(".vl-prose .vl-agent-text")).toHaveCount(0);
+  await page.getByRole("button", { name: "Version history" }).click();
+  await expect(page.getByText(/Assistant \(claude-[\w.-]+\), asked by You/).first()).toBeVisible();
 });
 
 test("without speech recognition set up, it says where to set it up", async ({ page }) => {
