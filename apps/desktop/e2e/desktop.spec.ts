@@ -15,7 +15,7 @@ let userData: string;
 async function launch() {
   app = await electron.launch({
     args: [APP_DIR, `--user-data-dir=${userData}`],
-    env: { ...process.env, ELECTRON_ENABLE_LOGGING: "0" },
+    env: { ...process.env, ELECTRON_ENABLE_LOGGING: "0", VELLUM_NO_PROTOCOL: "1" },
   });
   page = await app.firstWindow();
   await page.waitForLoadState("domcontentloaded");
@@ -69,7 +69,7 @@ test("the page is sandboxed: no Node, a minimal bridge, and no navigation away",
   expect(exposed).toEqual({
     require: "undefined",
     process: "undefined",
-    bridge: ["platform", "secrets"],
+    bridge: ["onCommand", "onImportFiles", "openWindow", "platform", "secrets", "setCurrentPath", "updates"],
     secrets: ["delete", "get", "isEncryptionAvailable", "set"],
   });
 

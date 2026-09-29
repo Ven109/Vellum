@@ -1,16 +1,35 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { dirname, extname, join, normalize, sep } from "node:path";
-import { app, BrowserWindow, ipcMain, protocol, safeStorage, session, shell } from "electron";
-import type { IpcMainInvokeEvent, WebContents } from "electron";
+import { app, BrowserWindow, ipcMain, protocol, safeStorage, session } from "electron";
+import type { IpcMainInvokeEvent } from "electron";
+import { isImportable, sendCommand, sendFilesToImport } from "./commands.js";
+import { deepLinkFromArgv, parseDeepLink } from "./deeplinks.js";
+import { buildMenu, buildQuickAccess, registerGlobalShortcut } from "./menu.js";
+import { flushSettings } from "./settings.js";
+import {
+  changeUpdateSettings,
+  checkForUpdates,
+  currentStatus,
+  installUpdate,
+  startUpdates,
+  updateSettingsView,
+} from "./updates.js";
+import {
+  activeWindow,
+  hardenContents,
+  openPath,
+  ORIGIN,
+  rememberWindowsForQuit,
+  restoreWindows,
+  setWindowPath,
+} from "./windows.js";
 
 /**
  * Vellum desktop: the web app served from a private `app://vellum` origin inside a locked-down
  * BrowserWindow (context isolation, sandbox, no Node in the page). The only bridge to the system is the
  * preload script's small, validated IPC surface.
  */
-const ORIGIN = "app://vellum";
-const startedAt = Date.now();
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -110,6 +129,9 @@ function fromApp(event: IpcMainInvokeEvent): boolean {
   return url === ORIGIN || url.startsWith(`${ORIGIN}/`);
 }
 
+const validPath = (p: unknown): p is string =>
+  typeof p === "string" && p.length < 500 && /^\/[\w\-/.~%?=&#]*$/.test(p) && !p.startsWith("//");
+
 const validId = (id: unknown): id is string => typeof id === "string" && /^[\w:.-]{1,200}$/.test(id);
 
 function registerIpc() {
@@ -133,76 +155,121 @@ function registerIpc() {
     delete all[id];
     await saveSecrets();
   });
+
+  // Windows: one document per window.
+  ipcMain.handle("window:open", (e, path: unknown) => {
+    if (!fromApp(e) || !validPath(path)) throw new Error("rejected");
+    openPath(path);
+  });
+  ipcMain.on("window:path", (e, path: unknown) => {
+    const win = BrowserWindow.fromWebContents(e.sender);
+    if (win && fromApp(e as unknown as IpcMainInvokeEvent) && validPath(path)) setWindowPath(win.id, path);
+  });
+
+  // Updates.
+  ipcMain.handle("updates:settings", (e) => {
+    if (!fromApp(e)) throw new Error("rejected");
+    return updateSettingsView();
+  });
+  ipcMain.handle("updates:set", (e, patch: unknown) => {
+    if (!fromApp(e) || typeof patch !== "object" || !patch) throw new Error("rejected");
+    return changeUpdateSettings(patch as Record<string, unknown>);
+  });
+  ipcMain.handle("updates:check", async (e) => {
+    if (!fromApp(e)) throw new Error("rejected");
+    await checkForUpdates();
+  });
+  ipcMain.handle("updates:install", (e) => {
+    if (!fromApp(e)) throw new Error("rejected");
+    installUpdate();
+  });
+  ipcMain.handle("updates:status", (e) => (fromApp(e) ? currentStatus() : null));
 }
 
-// --- Windows -----------------------------------------------------------------------------------------
+// --- Links and files from the system ------------------------------------------------------------------
 
-const hardened = new WeakSet<WebContents>();
+let ready = false;
+const pendingLinks: string[] = [];
+const pendingFiles: string[] = [];
 
-function harden(contents: WebContents) {
-  // Windows are hardened when created and again by web-contents-created; attach the handlers once.
-  if (hardened.has(contents)) return;
-  hardened.add(contents);
-  // Stay on our own origin; links to the web open in the default browser.
-  contents.on("will-navigate", (event, url) => {
-    if (!url.startsWith(`${ORIGIN}/`)) {
-      event.preventDefault();
-      if (/^https?:\/\//.test(url)) void shell.openExternal(url);
-    }
-  });
-  contents.setWindowOpenHandler(({ url }) => {
-    if (/^https?:\/\//.test(url)) void shell.openExternal(url);
-    return { action: "deny" };
-  });
-  contents.on("will-attach-webview", (event) => event.preventDefault());
+function handleDeepLink(url: string) {
+  if (!ready) return void pendingLinks.push(url);
+  const link = parseDeepLink(url);
+  if (!link) return;
+  if (link.type === "new-draft") sendCommand(activeWindow(), { type: "new-draft" });
+  else openPath(link.path);
 }
 
-export function createWindow(path = "/"): BrowserWindow {
-  const win = new BrowserWindow({
-    width: 1280,
-    height: 860,
-    minWidth: 720,
-    minHeight: 480,
-    show: false,
-    title: "Vellum",
-    backgroundColor: "#fdfbf7",
-    webPreferences: {
-      preload: join(__dirname, "preload.cjs"),
-      contextIsolation: true,
-      sandbox: true,
-      nodeIntegration: false,
-      webSecurity: true,
-      spellcheck: true,
-    },
+function handleFiles(files: string[]) {
+  const importable = files.filter(isImportable);
+  if (!importable.length) return;
+  if (!ready) return void pendingFiles.push(...importable);
+  void sendFilesToImport(activeWindow(), importable);
+}
+
+const filesFromArgv = (argv: string[]) => argv.slice(1).filter((a) => !a.startsWith("-") && isImportable(a));
+
+// vellum:// links. In development the executable needs the app path to be registered.
+if (process.defaultApp && process.argv[1]) {
+  app.setAsDefaultProtocolClient("vellum", process.execPath, [process.argv[1]]);
+} else if (!process.env.VELLUM_NO_PROTOCOL) {
+  app.setAsDefaultProtocolClient("vellum");
+}
+
+// One Vellum at a time: a second launch (a link, "Open with…") hands its request to the running app.
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else {
+  app.on("second-instance", (_e, argv) => {
+    const link = deepLinkFromArgv(argv);
+    const files = filesFromArgv(argv);
+    if (link) handleDeepLink(link);
+    else if (files.length) handleFiles(files);
+    else activeWindow();
   });
-  harden(win.webContents);
-  win.once("ready-to-show", () => win.show());
-  if (process.env.VELLUM_MEASURE_STARTUP) {
-    win.webContents.once("did-finish-load", () => {
-      // Printed for scripts/budget.mjs, then quit.
-      console.log(`VELLUM_STARTUP_MS=${Date.now() - startedAt}`);
-      app.quit();
+  // macOS delivers links and opened files as events, possibly before the app is ready.
+  app.on("open-url", (event, url) => {
+    event.preventDefault();
+    handleDeepLink(url);
+  });
+  app.on("open-file", (event, file) => {
+    event.preventDefault();
+    handleFiles([file]);
+  });
+
+  app.enableSandbox();
+
+  void app.whenReady().then(() => {
+    // Deny every permission request (camera, notifications, geolocation…) unless we add it on purpose.
+    session.defaultSession.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));
+    serveApp();
+    registerIpc();
+    buildMenu();
+    const link = deepLinkFromArgv(process.argv);
+    const launchLink = link ? parseDeepLink(link) : null;
+    if (launchLink?.type === "open") openPath(launchLink.path);
+    else restoreWindows();
+    if (launchLink?.type === "new-draft") pendingLinks.push(link!);
+    pendingFiles.push(...filesFromArgv(process.argv));
+    ready = true;
+    for (const l of pendingLinks.splice(0)) handleDeepLink(l);
+    if (pendingFiles.length) handleFiles(pendingFiles.splice(0));
+    buildQuickAccess();
+    registerGlobalShortcut();
+    startUpdates();
+    app.on("activate", () => {
+      if (BrowserWindow.getAllWindows().length === 0) restoreWindows();
     });
-  }
-  void win.loadURL(`${ORIGIN}${path}`);
-  return win;
+  });
 }
 
-app.enableSandbox();
-
-void app.whenReady().then(() => {
-  // Deny every permission request (camera, notifications, geolocation…) unless we add it on purpose.
-  session.defaultSession.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));
-  serveApp();
-  registerIpc();
-  createWindow();
-  app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
+app.on("before-quit", () => {
+  rememberWindowsForQuit();
+  flushSettings();
 });
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
 
-app.on("web-contents-created", (_e, contents) => harden(contents));
+app.on("web-contents-created", (_e, contents) => hardenContents(contents));
