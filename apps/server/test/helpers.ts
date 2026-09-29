@@ -46,3 +46,33 @@ export async function until(cond: () => boolean, timeoutMs = 2000): Promise<void
     await new Promise((r) => setTimeout(r, 10));
   }
 }
+
+import type { FastifyInstance } from "fastify";
+
+/** Complete first-run setup and return the admin's session cookie and workspace id. */
+export async function setupAdmin(app: FastifyInstance, overrides: Record<string, unknown> = {}) {
+  const res = await app.inject({
+    method: "POST",
+    url: "/api/setup",
+    payload: {
+      email: "admin@example.com",
+      name: "Admin",
+      password: "correct horse battery",
+      workspaceName: "Main",
+      ...overrides,
+    },
+  });
+  if (res.statusCode !== 200) throw new Error(`setup failed: ${res.body}`);
+  const cookie = res.cookies.find((c) => c.name === "vellum_session")!;
+  const body = res.json() as { user: { id: string }; workspaces: Array<{ id: string }> };
+  return {
+    cookie: `vellum_session=${cookie.value}`,
+    userId: body.user.id,
+    workspaceId: body.workspaces[0]!.id,
+  };
+}
+
+export function cookieFrom(res: { cookies: Array<{ name: string; value: string }> }): string {
+  const c = res.cookies.find((x) => x.name === "vellum_session");
+  return c ? `vellum_session=${c.value}` : "";
+}

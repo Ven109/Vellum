@@ -6,17 +6,22 @@ import { buildApp } from "../src/app.js";
 import { loadConfig } from "../src/config.js";
 import { openDatabase } from "../src/db.js";
 import type { Db } from "../src/db.js";
-import { connect, until } from "./helpers.js";
+import { connect, setupAdmin, until } from "./helpers.js";
 
 let app: FastifyInstance;
 let db: Db;
 let base: string;
+let headers: Record<string, string>;
+let ws: string;
 const DOC = "doc_01abcdefghjkmnpqrstv";
 
 beforeEach(async () => {
   db = openDatabase(":memory:");
   app = await buildApp(loadConfig({ PORT: "0" }), { db, logger: false });
   base = await app.listen({ host: "127.0.0.1", port: 0 });
+  const admin = await setupAdmin(app);
+  headers = { cookie: admin.cookie };
+  ws = admin.workspaceId;
 });
 
 afterEach(async () => {
@@ -33,8 +38,8 @@ describe("sync server", () => {
   it("relays edits between clients and acknowledges persisted updates", async () => {
     const a = new Y.Doc();
     const b = new Y.Doc();
-    const ca = await connect(base, DOC, a);
-    const cb = await connect(base, DOC, b);
+    const ca = await connect(base, `${DOC}?ws=${ws}`, a, headers);
+    const cb = await connect(base, `${DOC}?ws=${ws}`, b, headers);
     a.getText("t").insert(0, "hello from a");
     await until(() => b.getText("t").toString() === "hello from a");
     await until(() => ca.acks.some((sv) => sync.stateVectorCovers(sv, Y.encodeStateVector(a))));
@@ -45,7 +50,7 @@ describe("sync server", () => {
 
   it("persists across reconnects and merges offline edits", async () => {
     const a = new Y.Doc();
-    let ca = await connect(base, DOC, a);
+    let ca = await connect(base, `${DOC}?ws=${ws}`, a, headers);
     a.getText("t").insert(0, "one");
     await until(() => ca.acks.some((sv) => sync.stateVectorCovers(sv, Y.encodeStateVector(a))));
     await ca.close();
@@ -54,10 +59,10 @@ describe("sync server", () => {
     // Offline edit on a, concurrent edit on a fresh client b.
     a.getText("t").insert(3, " two");
     const b = new Y.Doc();
-    const cb = await connect(base, DOC, b);
+    const cb = await connect(base, `${DOC}?ws=${ws}`, b, headers);
     await until(() => b.getText("t").toString() === "one");
     b.getText("t").insert(0, "zero ");
-    ca = await connect(base, DOC, a);
+    ca = await connect(base, `${DOC}?ws=${ws}`, a, headers);
     await until(() => a.getText("t").toString() === b.getText("t").toString() && a.getText("t").length > 8);
     expect(a.getText("t").toString()).toBe("zero one two");
     await ca.close();
@@ -66,7 +71,7 @@ describe("sync server", () => {
 
   it("rejects invalid document ids", async () => {
     const doc = new Y.Doc();
-    const c = await connect(base, "../../etc", doc).catch((e: Error) => e);
+    const c = await connect(base, "../../etc", doc, headers).catch((e: Error) => e);
     if (c instanceof Error) expect(c).toBeInstanceOf(Error);
     else {
       await until(() => c.ws.readyState === c.ws.CLOSED);

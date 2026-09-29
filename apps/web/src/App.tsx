@@ -7,10 +7,55 @@ import { EditorScreen } from "./screens/EditorScreen.js";
 import { LibraryScreen } from "./screens/LibraryScreen.js";
 import { ProviderSettings } from "./screens/ProviderSettings.js";
 import { VoiceSettingsPage } from "./screens/VoiceSettings.js";
+import {
+  ForgotPasswordScreen,
+  InviteScreen,
+  ResetPasswordScreen,
+  SetupScreen,
+  SignInScreen,
+  SignUpScreen,
+} from "./screens/AuthScreens.js";
+import { WorkspaceSettingsPage } from "./screens/WorkspaceSettings.js";
 import { useApp } from "./state/app.js";
+import { useAuth } from "./state/auth.js";
 import { navigate, useRoute } from "./state/router.js";
 
+const AUTH_PATHS = ["/setup", "/sign-in", "/sign-up", "/forgot-password", "/reset-password"];
+
 export function App() {
+  const status = useAuth((s) => s.status);
+  const boot = useAuth((s) => s.boot);
+  const route = useRoute();
+
+  useEffect(() => {
+    void boot();
+  }, [boot]);
+
+  const path = route.name === "screen" ? route.path : "";
+  const invite = /^\/invite\/([^/]+)$/.exec(path)?.[1];
+
+  if (status === "checking") return <Loading />;
+  if (status === "setup") return <SetupScreen />;
+  if (invite) return <InviteScreen token={decodeURIComponent(invite)} />;
+  if (status === "signed-out") {
+    if (path === "/sign-up") return <SignUpScreen />;
+    if (path === "/forgot-password") return <ForgotPasswordScreen />;
+    if (path === "/reset-password") return <ResetPasswordScreen />;
+    return <SignInScreen />;
+  }
+  if (path === "/reset-password") return <ResetPasswordScreen />;
+  return <Workspace leaveAuthPath={AUTH_PATHS.includes(path)} />;
+}
+
+function Loading() {
+  return (
+    <div className="vl-loading" aria-busy="true">
+      Loading…
+    </div>
+  );
+}
+
+function Workspace({ leaveAuthPath }: { leaveAuthPath: boolean }) {
   const ready = useApp((s) => s.ready);
   const init = useApp((s) => s.init);
   const route = useRoute();
@@ -29,16 +74,10 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    if (ready && route.name === "home") navigate("/library", { replace: true });
-  }, [ready, route.name]);
+    if (ready && (route.name === "home" || leaveAuthPath)) navigate("/library", { replace: true });
+  }, [ready, route.name, leaveAuthPath]);
 
-  if (!ready) {
-    return (
-      <div className="vl-loading" aria-busy="true">
-        Loading…
-      </div>
-    );
-  }
+  if (!ready) return <Loading />;
 
   return (
     <div className="vl-app">
@@ -56,6 +95,7 @@ function Screen() {
   if (route.name === "screen" && route.path === "/library") return <LibraryScreen />;
   if (route.name === "screen" && route.path === "/settings/ai") return <ProviderSettings />;
   if (route.name === "screen" && route.path === "/settings/voice") return <VoiceSettingsPage />;
+  if (route.name === "screen" && route.path === "/settings/workspace") return <WorkspaceSettingsPage />;
   return (
     <main className="vl-main vl-empty">
       <p>Page not found.</p>

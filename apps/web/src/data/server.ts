@@ -29,9 +29,25 @@ export function resetServerDetection(): void {
   detected = null;
 }
 
-export function syncUrl(docId: string): string {
+export function syncUrl(docId: string, workspaceId?: string): string {
   const base = new URL(serverBaseUrl());
   base.protocol = base.protocol === "https:" ? "wss:" : "ws:";
   base.pathname = `/sync/${encodeURIComponent(docId)}`;
+  if (workspaceId) base.searchParams.set("ws", workspaceId);
   return base.toString();
+}
+
+type WorkspaceResolver = (docId: string) => string | null;
+let resolver: WorkspaceResolver = () => null;
+
+/**
+ * Which server workspace a document syncs under, or null to keep it on this device only (signed out,
+ * or a local-only workspace). The server checks membership; the id registers new documents.
+ */
+export function setSyncWorkspaceResolver(fn: WorkspaceResolver): void {
+  resolver = fn;
+}
+
+export function syncWorkspaceFor(docId: string): string | null {
+  return resolver(docId);
 }

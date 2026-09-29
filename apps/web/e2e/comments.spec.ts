@@ -15,13 +15,13 @@ test("comment threads anchor to text, survive edits, and detach when the text is
   await selectText(page, "one tool");
   await page.getByRole("toolbar", { name: "Formatting" }).getByRole("button", { name: "Comment" }).click();
   const composer = page.getByRole("dialog", { name: "New comment" });
-  await composer.getByLabel("Comment").fill("Which tool? Ask @You");
+  await composer.getByLabel("Comment").fill("Which tool? Ask @Ada Admin");
   await composer.getByRole("button", { name: "Comment" }).click();
 
   const rail = page.getByRole("region", { name: "Comments" });
   const card = rail.getByRole("article", { name: /Comment on “one tool”/ });
   await expect(card).toBeVisible();
-  await expect(card.locator(".vl-mention")).toHaveText("@You");
+  await expect(card.locator(".vl-mention")).toHaveText("@Ada Admin");
   await expect(page.locator(".vl-prose .vl-comment-active")).toHaveText("one tool");
 
   // Editing before the anchor keeps it attached to the same words.

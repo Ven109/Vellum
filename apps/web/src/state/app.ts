@@ -3,8 +3,9 @@ import type { Collection, DocumentMeta, User, Workspace } from "@vellum/core";
 import { create } from "zustand";
 import { IndexedDbRepository } from "../data/idb.js";
 import { backfill, removeFromIndex, updateIndexedTitle } from "../data/search.js";
+import type { Me } from "../data/account.js";
 import type { Repository } from "../data/repository.js";
-import { ensureSeeded, nextCollectionColour } from "../data/seed.js";
+import { adoptAccount, ensureSeeded, nextCollectionColour } from "../data/seed.js";
 
 export interface AppState {
   repo: Repository;
@@ -17,8 +18,10 @@ export interface AppState {
   welcomeDocId: string | null;
   /** Other people in this workspace (filled in once accounts exist). */
   members: Array<{ id: string; name: string }>;
+  /** The signed-in server account, or null when running local-only. */
+  account: Me | null;
 
-  init(repo?: Repository): Promise<void>;
+  init(repo?: Repository, account?: Me | null): Promise<void>;
   refresh(): Promise<void>;
   createDocument(
     input?: Partial<Pick<DocumentMeta, "title" | "collectionId" | "isTemplate">>,
@@ -32,6 +35,8 @@ export interface AppState {
   deleteCollection(id: string): Promise<void>;
   reorderCollections(orderedIds: string[]): Promise<void>;
   switchWorkspace(id: string): Promise<void>;
+  /** Bring local workspace records in line with the server account (after joining or creating one). */
+  syncAccount(me: Me): Promise<void>;
   updateWorkspaceSettings(patch: Partial<Workspace["settings"]>): Promise<void>;
 }
 
@@ -40,7 +45,7 @@ const writes = new Map<string, Promise<void>>();
 
 export const useApp = create<AppState>((set, get) => {
   async function doInit() {
-    const { user, workspace } = await ensureSeeded(get().repo);
+    const { user, workspace } = await ensureSeeded(get().repo, get().account ?? undefined);
     set({ user, workspace, welcomeDocId: (await get().repo.getSetting<string>("welcomeDocId")) ?? null });
     await get().refresh();
     set({ ready: true });
@@ -58,10 +63,12 @@ export const useApp = create<AppState>((set, get) => {
     documents: [],
     welcomeDocId: null,
     members: [],
+    account: null,
 
-    init(repo) {
+    init(repo, account) {
       // Idempotent: React StrictMode and multiple mounts must not seed twice.
       if (repo) set({ repo });
+      if (account !== undefined) set({ account });
       const key = get().repo;
       let pending = initialising.get(key);
       if (!pending) {
@@ -210,6 +217,14 @@ export const useApp = create<AppState>((set, get) => {
       // Update the UI first, then persist.
       set({ workspace: next, workspaces: get().workspaces.map((w) => (w.id === next.id ? next : w)) });
       await repo.putWorkspace(next);
+    },
+
+    async syncAccount(me) {
+      set({ account: me });
+      await adoptAccount(get().repo, me);
+      const workspace = get().workspace ? await get().repo.getWorkspace(get().workspace!.id) : undefined;
+      if (workspace) set({ workspace });
+      await get().refresh();
     },
 
     async switchWorkspace(id) {
