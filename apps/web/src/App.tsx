@@ -4,6 +4,7 @@ import { CommandPalette } from "./components/CommandPalette.js";
 import { CoreCommands } from "./components/CoreCommands.js";
 import { Sidebar } from "./components/Sidebar.js";
 import { EditorScreen } from "./screens/EditorScreen.js";
+import { HistoryScreen } from "./screens/HistoryScreen.js";
 import { LibraryScreen } from "./screens/LibraryScreen.js";
 import { ProviderSettings } from "./screens/ProviderSettings.js";
 import { VoiceSettingsPage } from "./screens/VoiceSettings.js";
@@ -97,6 +98,7 @@ function Workspace({ leaveAuthPath }: { leaveAuthPath: boolean }) {
 function Screen() {
   const route = useRoute();
   if (route.name === "doc") return <EditorScreen key={route.id} docId={route.id} splitId={route.split} />;
+  if (route.name === "history") return <HistoryScreen key={route.id} docId={route.id} />;
   if (route.name === "screen" && route.path === "/library") return <LibraryScreen />;
   if (route.name === "screen" && route.path === "/settings/ai") return <ProviderSettings />;
   if (route.name === "screen" && route.path === "/settings/voice") return <VoiceSettingsPage />;

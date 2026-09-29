@@ -2523,3 +2523,174 @@ del.vl-sug-del,
 .vl-retention .vl-input {
   width: 76px;
 }
+
+/* Version history */
+.vl-history-main .vl-topbar {
+  gap: 12px;
+}
+
+.vl-history-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.vl-history {
+  display: grid;
+  flex: 1;
+  grid-template-columns: 280px minmax(0, 1fr);
+  min-height: 0;
+}
+
+.vl-timeline {
+  padding: 16px 12px;
+  overflow: auto;
+  border-right: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.vl-timeline ol {
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.vl-timeline-item {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: none;
+  text-align: left;
+}
+
+.vl-timeline-item:hover {
+  background: var(--panel-2);
+}
+
+.vl-timeline-item[aria-pressed="true"] {
+  border-color: var(--line);
+  background: var(--paper);
+}
+
+.vl-timeline-row {
+  display: flex;
+  justify-content: space-between;
+}
+
+.vl-timeline-author {
+  color: var(--ink-2);
+  font-size: 12px;
+}
+
+.vl-diff-counts {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.vl-plus {
+  color: var(--ok);
+}
+
+.vl-minus {
+  color: var(--danger);
+}
+
+.vl-version-name {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.vl-version {
+  min-width: 0;
+  padding: 24px 32px 64px;
+  overflow: auto;
+}
+
+.vl-version-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.vl-version-head h2 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+
+.vl-version-head p {
+  margin: 0;
+}
+
+.vl-diff {
+  max-width: var(--measure);
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.vl-diff ins {
+  background: var(--insert);
+  color: var(--insert-ink);
+  text-decoration: none;
+}
+
+.vl-diff del {
+  background: var(--delete);
+  color: var(--delete-ink);
+}
+
+.vl-diff-side {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.vl-diff-side h3 {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.vl-clean {
+  max-width: var(--measure);
+}
+
+@media (max-width: 800px) {
+  .vl-history {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .vl-timeline {
+    max-height: 40vh;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .vl-diff-side {
+    grid-template-columns: 1fr;
+  }
+
+  .vl-version {
+    padding: 16px;
+  }
+}

@@ -16,10 +16,17 @@ beforeEach(async () => {
 const me = { kind: "user" as const, userId: "usr_me" };
 
 describe("local version history", () => {
+  it("skips automatic snapshots when nothing changed, but not named ones", async () => {
+    await recordVersion("doc_c", "same", me, "autosave");
+    expect(await recordVersion("doc_c", "same", me, "autosave")).toBeNull();
+    expect(await recordVersion("doc_c", "same", me, "named", "Milestone")).not.toBeNull();
+    expect(await listVersions("doc_c")).toHaveLength(2);
+  });
+
   it("records versions with word-level change counts against the previous one", async () => {
     await recordVersion("doc_a", "one two three", me, "autosave");
     await new Promise((r) => setTimeout(r, 5)); // distinct timestamps, so the order is defined
-    const v2 = await recordVersion("doc_a", "one two four five", me, "autosave", undefined, "Title");
+    const v2 = (await recordVersion("doc_a", "one two four five", me, "autosave", undefined, "Title"))!;
     expect(v2.stats).toEqual({ wordsAdded: 2, wordsRemoved: 1, wordCount: 4 });
     expect(v2.title).toBe("Title");
     const list = await listVersions("doc_a");
@@ -52,7 +59,7 @@ describe("local version history", () => {
       markdown: "x",
     });
     await nameVersion("doc_b", "ver_named", "Keep me");
-    const fresh = await recordVersion("doc_b", "x y", me, "autosave");
+    const fresh = (await recordVersion("doc_b", "x y", me, "autosave"))!;
     expect((await listVersions("doc_b")).map((v) => v.id)).toEqual([fresh.id, "ver_named"]);
   });
 });

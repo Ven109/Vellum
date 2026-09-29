@@ -85,8 +85,10 @@ export async function recordVersion(
   reason: VersionReason,
   name?: string,
   title?: string,
-): Promise<Version> {
+): Promise<Version | null> {
   const previous = await previousMarkdown(documentId);
+  // An automatic snapshot or checkpoint of unchanged content adds nothing to history.
+  if ((reason === "autosave" || reason === "checkpoint") && markdown === previous) return null;
   const stats = diffStats(diffWords(previous, markdown));
   const docTitle = title ?? useApp.getState().documents.find((d) => d.id === documentId)?.title;
   const version: Version = {

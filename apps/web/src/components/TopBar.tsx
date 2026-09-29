@@ -3,6 +3,7 @@ import type { DocumentMeta } from "@vellum/core";
 import {
   Check,
   CloudOff,
+  History,
   Loader2,
   Maximize2,
   MessagesSquare,
@@ -11,6 +12,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { toggleFocus } from "./CoreCommands.js";
+import { historyPath, navigate } from "../state/router.js";
 import { ShareDialog } from "./ShareDialog.js";
 import { usePeers } from "../state/presence.js";
 import { useAssistant } from "../state/assistant.js";
@@ -152,6 +154,14 @@ export function TopBar({ doc }: { doc: DocumentMeta }) {
           }}
         >
           <Sparkles size={14} /> <span className="vl-btn-label">Assistant</span>
+        </button>
+        <button
+          className="vl-icon-btn"
+          aria-label="Version history"
+          title="Version history"
+          onClick={() => navigate(historyPath(doc.id))}
+        >
+          <History size={15} />
         </button>
         <button
           className="vl-icon-btn"

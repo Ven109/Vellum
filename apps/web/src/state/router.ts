@@ -2,9 +2,14 @@ import { useSyncExternalStore } from "react";
 
 /** Minimal history-API router. Routes: `/`, `/d/:id`, and screen paths added by later features. */
 export type Route =
-  { name: "home" } | { name: "doc"; id: string; split?: string } | { name: "screen"; path: string };
+  | { name: "home" }
+  | { name: "doc"; id: string; split?: string }
+  | { name: "history"; id: string }
+  | { name: "screen"; path: string };
 
 export function parseRoute(pathname: string, search = ""): Route {
+  const history = /^\/d\/([^/]+)\/history\/?$/.exec(pathname);
+  if (history) return { name: "history", id: decodeURIComponent(history[1]!) };
   const doc = /^\/d\/([^/]+)\/?$/.exec(pathname);
   if (doc) {
     const split = new URLSearchParams(search).get("split");
@@ -47,6 +52,8 @@ export function useRoute(): Route {
 }
 
 export const docPath = (id: string) => `/d/${encodeURIComponent(id)}`;
+
+export const historyPath = (id: string) => `${docPath(id)}/history`;
 
 export const splitPath = (id: string, splitId: string) =>
   `${docPath(id)}?split=${encodeURIComponent(splitId)}`;

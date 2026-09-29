@@ -15,6 +15,7 @@ import { acquireDoc, contentOf, releaseDoc, titleOf } from "./ydocs.js";
 export async function createImportedDocs(
   docs: ImportedDoc[],
   onProgress?: (done: number) => void,
+  reason: "import" | "restore" = "import",
 ): Promise<string[]> {
   const app = useApp.getState();
   const schema = getSchema(vellumExtensions());
@@ -49,7 +50,7 @@ export async function createImportedDocs(
           meta.id,
           item.markdown,
           { kind: "user", userId: user.id },
-          "import",
+          reason,
           undefined,
           meta.title,
         ).catch(() => undefined);

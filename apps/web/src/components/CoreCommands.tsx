@@ -4,6 +4,7 @@ import {
   Columns2,
   FilePlus2,
   FolderPlus,
+  History,
   Library,
   Link2,
   Maximize2,
@@ -16,7 +17,7 @@ import { useAssistant } from "../state/assistant.js";
 import { useFocus } from "../state/focus.js";
 import { useDocSession } from "../state/session.js";
 import { MOD_KEY, useCommands } from "../state/commands.js";
-import { docPath, navigate, parseRoute } from "../state/router.js";
+import { docPath, historyPath, navigate, parseRoute } from "../state/router.js";
 
 const THEMES = ["system", "light", "dark"] as const;
 
@@ -103,6 +104,18 @@ export function CoreCommands() {
         icon: <Maximize2 size={15} />,
         when: () => currentRoute().name === "doc",
         run: () => toggleFocus(),
+      },
+      {
+        id: "history.open",
+        title: "Version history",
+        section: "Navigation",
+        keywords: ["versions", "restore", "changes", "diff", "timeline"],
+        icon: <History size={15} />,
+        when: () => currentRoute().name === "doc",
+        run: () => {
+          const r = currentRoute();
+          if (r.name === "doc") navigate(historyPath(r.id));
+        },
       },
       {
         id: "history.named",
