@@ -1,7 +1,7 @@
 // Check the packaged app against the agreed budgets (budget.json): installer size, unpacked size and
 // cold start (process launch to the app's first page load, median of three runs).
 import { spawn } from "node:child_process";
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 const budget = JSON.parse(readFileSync("budget.json", "utf8"));
@@ -12,8 +12,11 @@ if (!existsSync(out)) {
 }
 
 const MB = 1024 * 1024;
+// Symlinks are counted as links, not followed: macOS frameworks link Versions/Current and friends, so
+// following them would count the framework several times over.
 function sizeOf(path) {
-  const st = statSync(path);
+  const st = lstatSync(path);
+  if (st.isSymbolicLink()) return 0;
   if (!st.isDirectory()) return st.size;
   return readdirSync(path).reduce((n, f) => n + sizeOf(join(path, f)), 0);
 }
