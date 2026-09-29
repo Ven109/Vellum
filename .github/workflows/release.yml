@@ -70,12 +70,15 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      # Registry paths must be lower-case; the repository owner may not be.
+      - name: Image name
+        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/vellum" >> "$GITHUB_ENV"
       - name: Build and push
-        if: hashFiles('Dockerfile') != ''
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
+          build-args: VELLUM_VERSION=${{ github.ref_name }}
           tags: |
-            ghcr.io/${{ github.repository_owner }}/vellum:${{ github.ref_name }}
-            ghcr.io/${{ github.repository_owner }}/vellum:latest
+            ${{ env.IMAGE }}:${{ github.ref_name }}
+            ${{ env.IMAGE }}:latest

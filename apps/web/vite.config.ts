@@ -10,6 +10,7 @@ export default defineConfig({
       "/api": "http://127.0.0.1:8787",
       // Public read-only pages are rendered by the server.
       "/p/": "http://127.0.0.1:8787",
+      "/files/": "http://127.0.0.1:8787",
       "/sync": { target: "ws://127.0.0.1:8787", ws: true },
     },
   },

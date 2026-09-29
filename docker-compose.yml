@@ -1,0 +1,40 @@
+# Self-hosted Vellum: the app (sync server + web app, with its SQLite database in a volume) and
+# S3-compatible object storage for images. Start it with ./scripts/selfhost.sh, or:
+#   cp .env.example .env   # then set the passwords
+#   docker compose up -d
+name: vellum
+
+services:
+  vellum:
+    image: ghcr.io/ven109/vellum:${VELLUM_TAG:-latest}
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${VELLUM_PORT:-8787}:8787"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      VELLUM_PUBLIC_URL: ${VELLUM_PUBLIC_URL:-http://localhost:8787}
+      VELLUM_S3_ENDPOINT: http://storage:9000
+      VELLUM_S3_BUCKET: ${VELLUM_S3_BUCKET:-vellum}
+      VELLUM_S3_ACCESS_KEY: ${STORAGE_ACCESS_KEY:?set STORAGE_ACCESS_KEY in .env}
+      VELLUM_S3_SECRET_KEY: ${STORAGE_SECRET_KEY:?set STORAGE_SECRET_KEY in .env}
+    volumes:
+      - vellum-data:/data
+    depends_on:
+      - storage
+
+  storage:
+    image: rustfs/rustfs:1.0.0
+    restart: unless-stopped
+    command: ["/data"]
+    environment:
+      RUSTFS_ACCESS_KEY: ${STORAGE_ACCESS_KEY:?set STORAGE_ACCESS_KEY in .env}
+      RUSTFS_SECRET_KEY: ${STORAGE_SECRET_KEY:?set STORAGE_SECRET_KEY in .env}
+    volumes:
+      - storage-data:/data
+
+volumes:
+  vellum-data:
+  storage-data:

@@ -166,7 +166,7 @@ export function sharingPlugin(app: FastifyInstance, deps: Deps): void {
       .type("text/html; charset=utf-8")
       .header(
         "content-security-policy",
-        "default-src 'none'; img-src https: data:; style-src 'unsafe-inline'",
+        "default-src 'none'; img-src 'self' https: data:; style-src 'unsafe-inline'",
       )
       .header("x-robots-tag", "noindex")
       .send(publicPage(title, html));
