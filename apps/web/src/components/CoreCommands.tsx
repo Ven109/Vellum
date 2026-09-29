@@ -10,6 +10,7 @@ import {
   Library,
   Link2,
   Maximize2,
+  Mic,
   SunMoon,
 } from "lucide-react";
 import { recordVersion } from "../data/versions.js";
@@ -19,7 +20,7 @@ import { useAssistant } from "../state/assistant.js";
 import { useFocus } from "../state/focus.js";
 import { useDocSession } from "../state/session.js";
 import { MOD_KEY, useCommands } from "../state/commands.js";
-import { docPath, historyPath, navigate, parseRoute } from "../state/router.js";
+import { docPath, historyPath, navigate, parseRoute, voicePath } from "../state/router.js";
 
 const THEMES = ["system", "light", "dark"] as const;
 
@@ -117,6 +118,18 @@ export function CoreCommands() {
         run: () => {
           const r = currentRoute();
           if (r.name === "doc") navigate(historyPath(r.id));
+        },
+      },
+      {
+        id: "voice.start",
+        title: "Talk it through (voice session)",
+        section: "Commands",
+        keywords: ["voice", "speak", "dictate", "microphone", "talk"],
+        icon: <Mic size={15} />,
+        when: () => currentRoute().name === "doc",
+        run: () => {
+          const r = currentRoute();
+          if (r.name === "doc") navigate(voicePath(r.id));
         },
       },
       {

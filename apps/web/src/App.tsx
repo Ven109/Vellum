@@ -28,6 +28,7 @@ import { WorkspaceSettingsPage } from "./screens/WorkspaceSettings.js";
 import { useApp } from "./state/app.js";
 import { useAuth } from "./state/auth.js";
 import { useFocus } from "./state/focus.js";
+import { VoiceScreen } from "./screens/VoiceScreen.js";
 import { VoiceModeSettingsPage } from "./screens/VoiceModeSettings.js";
 import { OnboardingScreen } from "./screens/OnboardingScreen.js";
 import { onboardingPending } from "./state/onboarding.js";
@@ -133,6 +134,7 @@ function Screen() {
   const route = useRoute();
   if (route.name === "doc") return <EditorScreen key={route.id} docId={route.id} splitId={route.split} />;
   if (route.name === "history") return <HistoryScreen key={route.id} docId={route.id} />;
+  if (route.name === "voice") return <VoiceScreen key={route.id} docId={route.id} />;
   if (route.name === "screen" && route.path === "/library") return <LibraryScreen />;
   if (route.name === "screen" && (route.path === "/settings" || route.path === "/settings/account"))
     return <AccountSettingsPage />;

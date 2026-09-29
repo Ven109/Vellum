@@ -7,13 +7,14 @@ import {
   Loader2,
   Maximize2,
   MessagesSquare,
+  Mic,
   MoreHorizontal,
   Share2,
   Sparkles,
   TriangleAlert,
 } from "lucide-react";
 import { toggleFocus } from "./CoreCommands.js";
-import { historyPath, navigate } from "../state/router.js";
+import { historyPath, navigate, voicePath } from "../state/router.js";
 import { ShareDialog } from "./ShareDialog.js";
 import { usePeers } from "../state/presence.js";
 import { useAssistant } from "../state/assistant.js";
@@ -148,6 +149,14 @@ export function TopBar({ doc }: { doc: DocumentMeta }) {
         >
           <MessagesSquare size={14} /> <span className="vl-btn-label">Review</span>
           {reviewCount > 0 && <span className="vl-count-pill">{reviewCount}</span>}
+        </button>
+        <button
+          className="vl-btn"
+          aria-label="Voice session"
+          title="Talk it through"
+          onClick={() => navigate(voicePath(doc.id))}
+        >
+          <Mic size={14} /> <span className="vl-btn-label">Voice</span>
         </button>
         <button
           className="vl-btn"

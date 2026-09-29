@@ -5,11 +5,14 @@ export type Route =
   | { name: "home" }
   | { name: "doc"; id: string; split?: string }
   | { name: "history"; id: string }
+  | { name: "voice"; id: string }
   | { name: "screen"; path: string };
 
 export function parseRoute(pathname: string, search = ""): Route {
   const history = /^\/d\/([^/]+)\/history\/?$/.exec(pathname);
   if (history) return { name: "history", id: decodeURIComponent(history[1]!) };
+  const voice = /^\/d\/([^/]+)\/voice\/?$/.exec(pathname);
+  if (voice) return { name: "voice", id: decodeURIComponent(voice[1]!) };
   const doc = /^\/d\/([^/]+)\/?$/.exec(pathname);
   if (doc) {
     const split = new URLSearchParams(search).get("split");
@@ -83,6 +86,7 @@ export function useRoute(): Route {
 export const docPath = (id: string) => `/d/${encodeURIComponent(id)}`;
 
 export const historyPath = (id: string) => `${docPath(id)}/history`;
+export const voicePath = (id: string) => `${docPath(id)}/voice`;
 
 export const splitPath = (id: string, splitId: string) =>
   `${docPath(id)}?split=${encodeURIComponent(splitId)}`;
