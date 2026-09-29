@@ -126,11 +126,6 @@ jobs:
       - name: Desktop tests
         if: matrix.target == 'desktop' && runner.os != 'Linux'
         run: pnpm --filter @vellum/desktop exec playwright test
-        env:
-          # Electron's own output, so a launch that never finishes says why.
-          DEBUG: pw:browser
       - name: Desktop tests (virtual display)
         if: matrix.target == 'desktop' && runner.os == 'Linux'
         run: xvfb-run -a pnpm --filter @vellum/desktop exec playwright test
-        env:
-          DEBUG: pw:browser

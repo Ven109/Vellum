@@ -137,7 +137,12 @@ function registerIpc() {
 
 // --- Windows -----------------------------------------------------------------------------------------
 
+const hardened = new WeakSet<WebContents>();
+
 function harden(contents: WebContents) {
+  // Windows are hardened when created and again by web-contents-created; attach the handlers once.
+  if (hardened.has(contents)) return;
+  hardened.add(contents);
   // Stay on our own origin; links to the web open in the default browser.
   contents.on("will-navigate", (event, url) => {
     if (!url.startsWith(`${ORIGIN}/`)) {

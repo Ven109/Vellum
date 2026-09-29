@@ -73,11 +73,21 @@ test("the page is sandboxed: no Node, a minimal bridge, and no navigation away",
     secrets: ["delete", "get", "isEncryptionAvailable", "set"],
   });
 
+  // Web links go to the default browser. Record instead of really opening one: a browser started by the
+  // test would outlive the app and hold its output open.
+  await app.evaluate(({ shell }) => {
+    const opened: string[] = [];
+    (globalThis as { opened?: string[] }).opened = opened;
+    shell.openExternal = async (url: string) => void opened.push(url);
+  });
   await page.evaluate(() => {
     window.location.href = "https://example.com/";
   });
   await page.waitForTimeout(500);
   expect(page.url()).toMatch(/^app:\/\/vellum\//);
+  expect(await app.evaluate(() => (globalThis as { opened?: string[] }).opened)).toEqual([
+    "https://example.com/",
+  ]);
 
   const csp = await page.evaluate(async () => (await fetch("/")).headers.get("content-security-policy"));
   expect(csp).toContain("script-src 'self'");
