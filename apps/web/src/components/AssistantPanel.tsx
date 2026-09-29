@@ -1,5 +1,6 @@
 import { QUICK_ACTIONS, formatTokens, formatUsd } from "@vellum/ai";
 import { useUsage } from "../data/usage.js";
+import { RulesApplied } from "./RulesApplied.js";
 import { useRewrite } from "../state/rewrite.js";
 import { countWords } from "@vellum/core";
 import { AlertTriangle, ArrowUp, KeyRound, RotateCcw, Sparkles, Square, Trash2, X } from "lucide-react";
@@ -59,6 +60,7 @@ function Message({ m }: { m: ThreadMessage }) {
   return (
     <div className="vl-msg vl-msg-assistant" aria-busy={m.streaming || undefined}>
       {m.text && <div className="vl-msg-text">{m.text}</div>}
+      {!m.streaming && <RulesApplied rules={m.appliedRules} />}
       {m.streaming && !m.text && <p className="vl-muted">Thinking…</p>}
       {m.error && (
         <div className="vl-msg-error" role="alert">

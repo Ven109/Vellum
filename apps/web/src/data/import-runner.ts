@@ -44,7 +44,10 @@ export async function createImportedDocs(
       });
       live.remote?.flush();
       const text = pmDoc.textBetween(0, pmDoc.content.size, "\n", " ");
-      await useApp.getState().updateDocument(meta.id, { wordCount: countWords(text) });
+      await useApp.getState().updateDocument(meta.id, {
+        wordCount: countWords(text),
+        ...(item.status ? { status: item.status } : {}),
+      });
       void indexDocument(meta.id, meta.title, text);
       const user = useApp.getState().user;
       if (user)

@@ -16,6 +16,7 @@ import { useAssistant } from "../state/assistant.js";
 import { TopBar } from "../components/TopBar.js";
 import { FocusHud } from "../components/FocusHud.js";
 import { useFocus } from "../state/focus.js";
+import { usePreferences } from "../state/preferences.js";
 import { X } from "lucide-react";
 import { displayTitle } from "../components/Sidebar.js";
 import { useApp } from "../state/app.js";
@@ -75,6 +76,7 @@ function Notices({ live }: { live: LiveDoc }) {
 
 function TitleField({ live, docId, meta }: { live: LiveDoc; docId: string; meta?: DocumentMeta }) {
   const role = useSuggestions((s) => s.role);
+  const spellcheck = usePreferences((s) => s.prefs.spellcheck);
   const shared = useApp((s) => s.shared.some((d) => d.docId === docId));
   const updateDocument = useApp((s) => s.updateDocument);
   const ytitle = titleOf(live.doc);
@@ -112,6 +114,7 @@ function TitleField({ live, docId, meta }: { live: LiveDoc; docId: string; meta?
       rows={1}
       placeholder="Untitled"
       aria-label="Title"
+      spellCheck={spellcheck}
       readOnly={!canEdit(role)}
       value={value}
       onChange={(e) => {

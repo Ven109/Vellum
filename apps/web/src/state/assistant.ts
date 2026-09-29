@@ -1,4 +1,11 @@
-import { ProviderError, adapterFor, buildSystemPrompt, resolveModel } from "@vellum/ai";
+import {
+  ProviderError,
+  adapterFor,
+  buildSystemPrompt,
+  extractAppliedRules,
+  hidePartialRulesMarker,
+  resolveModel,
+} from "@vellum/ai";
 import type { ChatMessage, PromptSource, Usage } from "@vellum/ai";
 import { docToMarkdown } from "@vellum/editor";
 import { create } from "zustand";
@@ -18,6 +25,8 @@ export interface ThreadMessage {
   error?: { message: string; retryable: boolean; retryAt?: number };
   costUsd?: number | null;
   streaming?: boolean;
+  /** House rules the assistant says changed this reply. */
+  appliedRules?: string[];
 }
 
 export type ContextMode = "selection" | "document";
@@ -167,7 +176,7 @@ export const useAssistant = create<AssistantState>((set, get) => ({
       })) {
         if (ev.type === "text") {
           acc += ev.text;
-          patch({ text: acc });
+          patch({ text: hidePartialRulesMarker(acc) });
         } else if (ev.type === "usage") {
           Object.assign(
             usage,
@@ -184,7 +193,11 @@ export const useAssistant = create<AssistantState>((set, get) => ({
         feature: "chat",
         ...usage,
       });
-      patch({ streaming: false, usage, costUsd: entry.costUsd });
+      const { text: finalText, applied } = extractAppliedRules(
+        acc,
+        useApp.getState().workspace?.settings.houseRules,
+      );
+      patch({ streaming: false, usage, costUsd: entry.costUsd, text: finalText, appliedRules: applied });
     } catch (e) {
       const err = e instanceof ProviderError ? e : new ProviderError("unknown", String(e));
       if (err.code === "aborted") patch({ streaming: false });

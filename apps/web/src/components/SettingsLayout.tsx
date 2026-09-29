@@ -3,9 +3,12 @@ import { navigate, usePathname } from "../state/router.js";
 
 export const SETTINGS_SECTIONS: Array<{ path: string; label: string; group: "Account" | "Workspace" }> = [
   { path: "/settings/account", label: "Profile", group: "Account" },
+  { path: "/settings/editor", label: "Editor", group: "Account" },
+  { path: "/settings/shortcuts", label: "Keyboard shortcuts", group: "Account" },
   { path: "/settings/workspace", label: "Workspace and people", group: "Workspace" },
   { path: "/settings/voice", label: "Voice and style", group: "Workspace" },
   { path: "/settings/ai", label: "AI provider", group: "Workspace" },
+  { path: "/settings/export", label: "Export and backup", group: "Workspace" },
 ];
 
 /** The settings shell: account and workspace sections on the left, the page on the right. */

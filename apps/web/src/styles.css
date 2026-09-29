@@ -514,7 +514,7 @@ kbd {
   resize: none;
   overflow: hidden;
   background: transparent;
-  font-family: var(--serif);
+  font-family: var(--editor-font, var(--serif));
   font-size: 40px;
   font-weight: 600;
   line-height: 1.15;
@@ -527,7 +527,7 @@ kbd {
 
 .vl-prose {
   outline: 0;
-  font-family: var(--serif);
+  font-family: var(--editor-font, var(--serif));
   font-size: 19px;
   line-height: 1.7;
   color: var(--ink);
@@ -3086,7 +3086,80 @@ del.vl-sug-del,
   }
 }
 
-.vl-proposal-card:has(.vl-proposal-preview) {
+.vl-proposal-card:has(.vl-proposal-preview),
+.vl-proposal-card:has(.vl-rules-applied) {
   flex-wrap: wrap;
   max-width: min(560px, calc(100vw - 32px));
+}
+
+/* House rules applied */
+.vl-rules-applied {
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.vl-rule-chip {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--ai);
+  color: var(--ink-2);
+  font-size: 11px;
+}
+
+/* Editor preferences and shortcuts */
+.vl-choice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+  margin: 0 0 14px;
+  padding: 0;
+  border: 0;
+}
+
+.vl-choice legend {
+  float: left;
+  width: 110px;
+  color: var(--ink-2);
+  font-weight: 500;
+}
+
+.vl-pref-preview {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.7;
+}
+
+.vl-shortcuts {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.vl-shortcuts > div {
+  display: grid;
+  grid-template-columns: minmax(140px, 220px) 1fr;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.vl-shortcuts dd {
+  margin: 0;
+  color: var(--ink-2);
+}
+
+.vl-shortcuts kbd {
+  padding: 2px 6px;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--panel);
+  font-family: var(--mono);
+  font-size: 12px;
 }

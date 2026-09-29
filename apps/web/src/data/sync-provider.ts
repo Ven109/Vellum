@@ -64,6 +64,11 @@ export class DocSyncProvider {
 
   private readonly onLocalUpdate = () => this.events.change?.();
 
+  /** True once the first exchange with the server has completed on the current connection. */
+  get isSynced(): boolean {
+    return this.state === "connected" && !!this.session?.isSynced;
+  }
+
   /** Local changes the server has not yet confirmed. */
   get hasPendingChanges(): boolean {
     const local = Y.encodeStateVector(this.doc);

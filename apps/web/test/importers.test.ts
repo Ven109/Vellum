@@ -96,3 +96,27 @@ describe("Google Docs HTML", () => {
     expect(docs[0]!.markdown).toMatch(/Hello !\[\]\(data:image\/png;base64,/);
   });
 });
+
+describe("Vellum export", () => {
+  it("round-trips: front-matter collection and status, assets, and no README or manifest documents", async () => {
+    const zip = zipSync({
+      "vellum.json": enc.encode(JSON.stringify({ format: "vellum-export", version: 1 })),
+      "README.md": enc.encode("# Exported\n"),
+      "essays/on-notebooks.md": enc.encode(
+        '---\ntitle: "On notebooks: a note"\nstatus: published\ncollection: "Essays & Notes"\n---\n# On notebooks: a note\n\nText ![fig](../assets/image-1.png)\n',
+      ),
+      "assets/image-1.png": PNG,
+    });
+    const { docs, skipped } = await convertFiles([file("backup.zip", zip)]);
+    expect(skipped).toEqual([]);
+    expect(docs).toEqual([
+      expect.objectContaining({
+        title: "On notebooks: a note",
+        folder: "Essays & Notes",
+        status: "published",
+      }),
+    ]);
+    expect(docs[0]!.markdown).toContain("![fig](data:image/png;base64,");
+    expect(docs[0]!.markdown.startsWith("Text")).toBe(true);
+  });
+});
