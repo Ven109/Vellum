@@ -5,6 +5,7 @@ import { markdownToDoc, vellumExtensions } from "@vellum/editor";
 import { useApp } from "../state/app.js";
 import type { ImportedDoc } from "./importers.js";
 import { indexDocument } from "./search.js";
+import { uploadEmbeddedImages } from "./uploads.js";
 import { recordVersion } from "./versions.js";
 import { acquireDoc, contentOf, releaseDoc, titleOf } from "./ydocs.js";
 
@@ -35,7 +36,8 @@ export async function createImportedDocs(
     const live = acquireDoc(meta.id);
     try {
       await live.whenLoaded;
-      const pmDoc = markdownToDoc(schema, item.markdown);
+      const markdown = await uploadEmbeddedImages(item.markdown);
+      const pmDoc = markdownToDoc(schema, markdown);
       live.doc.transact(() => {
         titleOf(live.doc).insert(0, meta.title);
         prosemirrorToYXmlFragment(pmDoc, contentOf(live.doc));
@@ -48,7 +50,7 @@ export async function createImportedDocs(
       if (user)
         void recordVersion(
           meta.id,
-          item.markdown,
+          markdown,
           { kind: "user", userId: user.id },
           reason,
           undefined,

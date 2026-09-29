@@ -14,6 +14,7 @@ import { useDocSession } from "../state/session.js";
 import type { HeadingEntry } from "../state/session.js";
 import { SelectionToolbar } from "./SelectionToolbar.js";
 import { useSnapshots } from "./useSnapshots.js";
+import { imageHandlers } from "./imagePaste.js";
 import type { LiveDoc } from "../data/ydocs.js";
 import { Extension } from "@tiptap/core";
 import type { Editor } from "@tiptap/core";
@@ -65,6 +66,7 @@ export function DocumentEditor({ docId, ydoc, awareness, live, initialMarkdown, 
         ],
       }),
       editorProps: {
+        ...imageHandlers,
         // tabindex keeps read-only documents focusable, so readers can select text to comment or ask.
         attributes: { class: "vl-prose", "aria-label": "Document body", spellcheck: "true", tabindex: "0" },
       },

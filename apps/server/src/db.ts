@@ -114,6 +114,14 @@ const MIGRATIONS: string[] = [
    );
    CREATE INDEX versions_doc ON versions(doc_id, created_at);
    ALTER TABLE workspaces ADD COLUMN retention TEXT;`,
+  // 5: uploaded files (the bytes live in object storage or the data directory)
+  `CREATE TABLE uploads (
+     id TEXT PRIMARY KEY,
+     user_id TEXT NOT NULL REFERENCES users(id),
+     content_type TEXT NOT NULL,
+     size INTEGER NOT NULL,
+     created_at TEXT NOT NULL
+   );`,
 ];
 
 export type Db = DatabaseSync;

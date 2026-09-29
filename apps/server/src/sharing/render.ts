@@ -10,7 +10,11 @@ const esc = (s: string) =>
 
 const safeUrl = (url: unknown): string | null => {
   if (typeof url !== "string") return null;
-  return /^(https?:|mailto:|data:image\/(png|jpe?g|gif|webp|avif);)/i.test(url.trim()) ? url.trim() : null;
+  return /^(https?:|mailto:|data:image\/(png|jpe?g|gif|webp|avif);|\/files\/[a-z0-9]+\.[a-z]+$)/i.test(
+    url.trim(),
+  )
+    ? url.trim()
+    : null;
 };
 
 type Attrs = Record<string, unknown>;

@@ -14,11 +14,23 @@ offline, and has a writing assistant that uses **your own** AI provider key.
 - **Local-first.** Document state is a CRDT, so offline editing, realtime collaboration and version
   history all come from one mechanism.
 
+## Self-hosting
+
+```sh
+git clone https://github.com/Ven109/Vellum.git && cd Vellum
+./scripts/selfhost.sh
+```
+
+This starts Vellum and its object storage with Docker Compose, then prints the address to open to
+create the admin account. See [docs/self-hosting.md](docs/self-hosting.md) for configuration, TLS,
+backups and upgrades.
+
 ## Repository layout
 
 | Path              | What lives there                                              |
 | ----------------- | ------------------------------------------------------------- |
 | `apps/web`        | The web app (React + Vite)                                    |
+| `apps/server`     | Sync, accounts and sharing server (Fastify + SQLite)          |
 | `apps/desktop`    | The Electron shell that wraps the web app                     |
 | `packages/core`   | Data model, document format and pure domain logic             |
 | `packages/editor` | Rich-text schema and editor extensions (ProseMirror / TipTap) |

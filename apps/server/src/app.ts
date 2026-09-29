@@ -16,6 +16,9 @@ import { createMailer } from "./mail.js";
 import { ReadOnlyError } from "./sharing/guard.js";
 import { sharingPlugin } from "./sharing/routes.js";
 import { historyPlugin } from "./history/routes.js";
+import { createBlobStore } from "./storage.js";
+import type { BlobStore } from "./storage.js";
+import { uploadsPlugin } from "./uploads.js";
 import { SharingService, WRITABLE_ROOTS } from "./sharing/service.js";
 import type { DocRole } from "./sharing/service.js";
 
@@ -60,7 +63,13 @@ export const DOC_ID = /^[a-z]{3}_[0-9a-z]{10,40}$/;
 
 export async function buildApp(
   config: ServerConfig,
-  opts: { db?: Db; logger?: boolean; env?: NodeJS.ProcessEnv; fetchImpl?: typeof fetch } = {},
+  opts: {
+    db?: Db;
+    logger?: boolean;
+    env?: NodeJS.ProcessEnv;
+    fetchImpl?: typeof fetch;
+    blobs?: BlobStore;
+  } = {},
 ): Promise<FastifyInstance> {
   const app = Fastify({
     logger:
@@ -86,6 +95,19 @@ export async function buildApp(
     fetchImpl: opts.fetchImpl,
   });
   historyPlugin(app, { db, accounts, sharing });
+  const blobs = opts.blobs ?? createBlobStore(opts.env ?? process.env, config.dataDir);
+  // Object storage may still be starting (e.g. in Docker Compose); give it a little while.
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await blobs.init();
+      break;
+    } catch (err) {
+      if (attempt >= 30) throw err;
+      app.log.warn({ err: (err as Error).message, attempt }, "object storage not ready, retrying");
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+  }
+  uploadsPlugin(app, { db, store: blobs });
   sharingPlugin(app, { accounts, sharing, rooms, docs, publicUrl: config.publicUrl.replace(/\/+$/, "") });
 
   app.get("/api/health", async () => ({

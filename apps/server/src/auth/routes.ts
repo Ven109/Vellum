@@ -71,7 +71,9 @@ export function authPlugin(app: FastifyInstance, deps: AuthDeps): void {
       !req.url.startsWith("/api/auth/oauth/")
     ) {
       const type = req.headers["content-type"] ?? "";
-      if (!type.startsWith("application/json"))
+      // Uploads send the file itself; a custom header needs a preflight just as JSON does.
+      const upload = req.url === "/api/uploads" && req.headers["x-vellum-upload"] === "1";
+      if (!type.startsWith("application/json") && !upload)
         throw new AuthError(415, "json_required", "Requests must be JSON.");
     }
   });
